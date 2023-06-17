@@ -49,7 +49,7 @@ function s:init_gdb_win() abort
   setl cursorline
   "setl nobuflisted
   setl completefunc=GDBWin_Complete
-  set scrolloff=10
+  "set scrolloff=10
   setl statusline=%<%F[%1*%M%*%n%R%H]
   "setl completeopt=preview
   "
@@ -334,7 +334,12 @@ function s:GDBCmdCompleter.Complete(prefix) abort
   let cmd = '-complete "' . a:prefix . '"'
   let self.complete_completed = 0
   call self.gdbmi_ins.Execute(cmd)
-  while !self.complete_completed | sleep 5m | endwhile
+  let times = 0
+  while !self.complete_completed
+    if times >= 1000 | break | endif
+    sleep 5m
+    let times += 1
+  endwhile
   return self.completes
 endfunction
 
@@ -415,6 +420,10 @@ endfunction
 let s:pc_sign_id = -1
 function s:GDBMI.handle_frame_rec(frame) abort
   let frame = a:frame
+  if !has_key(frame, 'fullname')
+    echomsg 'some frame rec without fullname: ' . string(frame)
+    return
+  endif
   let fullname = frame['fullname']
   let line = frame['line']
   call Echomsg_if_debug('stopped, fillname is: ' . fullname . ' line: ' . line)
