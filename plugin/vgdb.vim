@@ -6,7 +6,7 @@ let s:gdb_console_file = '/tmp/gdb_console'
 let g:gdb_mi_output = ''
 let s:gdb_job = -1
 let g:gdb_bin = 'gdb'
-let g:debug = 0
+let g:debug = 1
 let s:gdb_buf_nr = -1
 
 function! g:Echomsg_if_debug(str) abort
@@ -31,6 +31,13 @@ endfunction
 function s:setup_prompt() abort
   call appendbufline(s:gdb_buf_nr, "$", g:vgdb_prompt)
   call cursor('$', 999)
+endfunction
+
+function s:go_to_original_win_and_key(key) abort
+  if s:original_win_id != 0
+    call win_gotoid(s:original_win_id)
+    call feedkeys(a:key)
+  endif
 endfunction
 
 " we assume we have moved to gdbwin
@@ -83,8 +90,11 @@ function s:init_gdb_win() abort
   inoremap <buffer><silent><Down> <ESC>:call GDBWin_History_Down("")<CR>A
   nnoremap <buffer><silent><UP> <ESC>:call GDBWin_History_Up("")<CR>
   nnoremap <buffer><silent><Down> <ESC>:call GDBWin_History_Down("")<CR>
-  nnoremap <buffer><silent> j <ESC>:call GDBWin_History_Down("")<CR>
-  nnoremap <buffer><silent> k <ESC>:call GDBWin_History_Up("")<CR>
+  nnoremap <buffer><silent> j :call <SID>go_to_original_win_and_key('j')<CR>
+  nnoremap <buffer><silent> k :call <SID>go_to_original_win_and_key('k')<CR>
+  nnoremap <buffer><silent> h :call <SID>go_to_original_win_and_key('h')<CR>
+  nnoremap <buffer><silent> l :call <SID>go_to_original_win_and_key('l')<CR>
+  nnoremap <buffer><silent> zz zz:call <SID>go_to_original_win_and_key('zz')<CR>
   inoremap <buffer><silent><c-j> <ESC>:call GDBWin_History_Down("")<CR>A
   nnoremap <buffer><silent><c-j> :call GDBWin_History_Down("")<CR>
   inoremap <buffer><silent><c-k> <ESC>:call GDBWin_History_Up("")<CR>A
@@ -518,6 +528,9 @@ endfunction
 function s:GDBMI.handle_bk_event(key, value) abort
   if a:key == 'breakpoint-created'
     let bkpt_map = a:value['bkpt']
+    if !has_key(bkpt_map, 'fullname')
+      return
+    endif
     let bk = self.get_bk(bkpt_map)
     call self.add_bk(bk)
   elseif a:key == 'breakpoint-deleted'
@@ -704,8 +717,11 @@ function! s:GDBMI_Execute(cmd, ignore_his = 0) abort
   call s:GDBMI.Execute(a:cmd)
 endfunction
 
-"we assume we are in the orignal window, not the gdb win
 function! s:GDBMI_Toggle_Break() abort
+  " if we are in gdb win, then we go to original_win and set break point
+  if s:gdb_buf_nr == bufnr()
+    call win_gotoid(s:original_win_id)
+  endif
   let b_name = bufname(bufnr())
   let line_n = line(".")
   let cmd = 'b ' . b_name . ':' . line_n
@@ -730,6 +746,9 @@ function! s:setup_original_win() abort
 
   nnoremap <c-up> :silent! call <SID>GDBMI_Execute('up', 1)<cr>
   nnoremap <c-down> :silent! call <SID>GDBMI_Execute('down', 1)<cr>
+  inoremap <c-up> :silent! call <SID>GDBMI_Execute('up', 1)<cr>
+  inoremap <c-down> :silent! call <SID>GDBMI_Execute('down', 1)<cr>
+
   nnoremap <C-B> :silent! call <SID>GDBMI_Toggle_Break()<cr>
   nnoremap L :silent! call <sid>GDBMI_Execute('info locals', 1)<cr>
   nunmap t
