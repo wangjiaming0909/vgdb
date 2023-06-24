@@ -583,6 +583,7 @@ function s:GDBMI.handle_frame_async_rec(value) abort
   if last_at_idx != 0
     let file_line = val[last_at_idx + 3:]
     let file_line_arr = split(file_line, ':')
+    call Echomsg_if_debug('file line arr: ' . file_line_arr[0] . ' file line arr1: ' . file_line_arr[1])
     call s:gdb_win_load_buf(file_line_arr[0], file_line_arr[1])
   endif
 endfunction
@@ -597,6 +598,9 @@ function s:GDBMI.handle_stream_recs(recs) abort
         if stridx(val, '#') == 0
           call s:GDBMI.handle_frame_async_rec(val)
         endif
+        if stridx(val, 'Starting program') == 0
+          call s:unplace_pc_sign()
+        endif
         call self.output_to_win(val)
       endfor
     elseif stream_rec_key == '@'
@@ -604,6 +608,11 @@ function s:GDBMI.handle_stream_recs(recs) abort
         call self.output_to_win(cli_resp['value'])
       endfor
     elseif stream_rec_key == '&'
+      for output in recs.stream_recs[stream_rec_key]
+        if has_key(output, 'value') && output['value'] == 'detach'
+          call s:unplace_pc_sign()
+        endif
+      endfor
       " do nothing, eat the output
     else
       "should not be here
@@ -672,12 +681,10 @@ function s:GDBMI.handle_parse_res(recs) abort
   call self.handle_async_recs(recs)
   call self.handle_stream_recs(recs)
   call self.handle_other_recs(recs)
-
 endfunction
 
 function s:GDBMI.Execute(cmd) abort
   call g:Echomsg_if_debug('job_id: '. self.job_id . 'start to execute: ' . a:cmd)
-  "let s:last_msg = ''
   call jobsend(self.job_id, a:cmd . "\n")
 endfunction
 
@@ -704,7 +711,6 @@ function! s:GDBMI_Start() abort
 endfunction
 
 function! s:GDBMI_Exit() abort
-  
 endfunction
 
 function! s:GDBMI_Execute(cmd, ignore_his = 0) abort
