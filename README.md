@@ -8,6 +8,9 @@ Install plugin:
 ```vimscript
 Plug 'wangjiaming0909/vgdb'
 ```
+```sh
+pip3 install pygdbmi
+```
 
 Add a command map to VGDB_Start() in you init.vim
 ```vimscript
