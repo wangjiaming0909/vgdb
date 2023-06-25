@@ -92,8 +92,8 @@ function s:init_gdb_win() abort
   nnoremap <buffer><silent><Down> <ESC>:call GDBWin_History_Down("")<CR>
   nnoremap <buffer><silent> j :call <SID>go_to_original_win_and_key('j')<CR>
   nnoremap <buffer><silent> k :call <SID>go_to_original_win_and_key('k')<CR>
-  nnoremap <buffer><silent> h :call <SID>go_to_original_win_and_key('h')<CR>
-  nnoremap <buffer><silent> l :call <SID>go_to_original_win_and_key('l')<CR>
+  "nnoremap <buffer><silent> h :call <SID>go_to_original_win_and_key('h')<CR>
+  "nnoremap <buffer><silent> l :call <SID>go_to_original_win_and_key('l')<CR>
   nnoremap <buffer><silent> zz zz:call <SID>go_to_original_win_and_key('zz')<CR>
   inoremap <buffer><silent><c-j> <ESC>:call GDBWin_History_Down("")<CR>A
   nnoremap <buffer><silent><c-j> :call GDBWin_History_Down("")<CR>
