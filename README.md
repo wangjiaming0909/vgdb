@@ -8,6 +8,7 @@ Install plugin:
 ```vimscript
 Plug 'wangjiaming0909/vgdb'
 ```
+Install py package `pygdbmi`
 ```sh
 pip3 install pygdbmi
 ```
