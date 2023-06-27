@@ -6,7 +6,7 @@ let s:gdb_console_file = '/tmp/gdb_console'
 let g:gdb_mi_output = ''
 let s:gdb_job = -1
 let g:gdb_bin = 'gdb'
-let g:debug = 1
+let g:debug = 0
 let s:gdb_buf_nr = -1
 
 function! g:Echomsg_if_debug(str) abort
@@ -167,7 +167,7 @@ function! s:gdb_win_load_buf(fullname, line) abort
   let fullname = a:fullname
   let line = a:line
   if filereadable(fullname)
-    call s:ensure_buf_loaded(fullname)
+    let bufnr = s:ensure_buf_loaded(fullname)
     " if we are not in gdb win
     if bufwinid(s:gdb_buf_nr) != win_getid()
       exec 'buffer ' . fullname
@@ -185,7 +185,7 @@ function! s:gdb_win_load_buf(fullname, line) abort
         "the original window not closed
         let a_win_id = win_getid()
         call win_gotoid(s:original_win_id)
-        exec 'buffer ' . fullname
+        exec 'buffer ' . bufnr
         call cursor(line, 1)
         call win_gotoid(a_win_id)
       endif
@@ -210,6 +210,7 @@ function s:ensure_buf_loaded(filename) abort
     let bufnr = bufadd(a:filename)
     call bufload(bufnr)
   endif
+  return bufnr(a:filename)
 endfunction
 
 function! GDBWin_Show() abort
