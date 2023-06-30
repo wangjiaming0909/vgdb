@@ -45,6 +45,7 @@ endfunction
 function s:init_gdb_win() abort
   setl noequalalways
   setl signcolumn=no
+  setl scrolloff=1
   setl nonu
   setl bh=hide
   "setl noswapfile
@@ -611,7 +612,7 @@ function s:GDBMI.handle_stream_recs(recs) abort
         endif
         if stridx(val, 'Starting program') == 0 || !empty(matchstr(val, 'process.*killed'))
           call s:unplace_pc_sign()
-        elseif empty(matchstr(val, '[0-9]*   '))
+        elseif empty(matchstr(val, '[0-9]*   ')) && empty(matchstr(val, '[0-9]* \}'))
           " filter out step line output
           call self.output_to_win(val)
         endif
