@@ -69,7 +69,7 @@ function s:init_gdb_win() abort
   nnoremap <buffer><expr>A <SID>gdb_win_modifiable() ? "A" : "GA"
   nnoremap <buffer><expr>O <SID>gdb_win_modifiable() ? "GA" : "GA"
   nnoremap <buffer><expr> 0 <SID>gdb_win_buf_in_last_line() ? "03w" : "0"
-  nmap <buffer><expr> 8 <sid>gdb_win_buf_in_last_line() ? "\<UP>0a*<cr><ESC>" : "8"
+  nmap <buffer><expr> 8 <sid>gdb_win_buf_in_last_line() ? "\<UP>0la (*<ESC>A)<cr><ESC>" : "8"
 
   inoremap <expr> <buffer> <BS> <SID>gdb_win_modifiable(1) ? "\<BS>" : ""
   nnoremap <expr> <buffer> x <SID>gdb_win_modifiable() ? "x" : ""
@@ -241,11 +241,18 @@ function! s:restore_original_maps() abort
   endfor
 endfunction
 
+" we are in gdb win now
+function! s:record_gdb_win_width() abort
+  let w = winwidth(0)
+  let g:gdb_win_width = w
+endfunction
+
 function! GDBWin_Hide() abort
   if bufwinnr(s:gdb_buf_nr) == -1
     return
   endif
   call s:go_to_gdb_win()
+  call s:record_gdb_win_width()
   hide
   call s:unmap_original_maps()
   let s:gdb_win_id = -1
