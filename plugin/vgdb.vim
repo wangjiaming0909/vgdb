@@ -171,7 +171,7 @@ function! s:gdb_win_load_buf(fullname, line) abort
     let bufnr = s:ensure_buf_loaded(fullname)
     " if we are not in gdb win
     if bufwinid(s:gdb_buf_nr) != win_getid()
-      exec 'buffer ' . fullname
+      exec 'buffer ' . bufnr
       call cursor(line, 1)
     else
       "if we are in gdb win
@@ -611,8 +611,10 @@ function s:GDBMI.handle_stream_recs(recs) abort
         endif
         if stridx(val, 'Starting program') == 0 || !empty(matchstr(val, 'process.*killed'))
           call s:unplace_pc_sign()
+        elseif empty(matchstr(val, '[0-9]*   '))
+          " filter out step line output
+          call self.output_to_win(val)
         endif
-        call self.output_to_win(val)
       endfor
     elseif stream_rec_key == '@'
       for target_output in recs.stream_recs[stream_rec_key]
@@ -634,8 +636,14 @@ function s:GDBMI.handle_stream_recs(recs) abort
 endfunction
 
 let s:last_msg = ''
+let s:output_any_msg = 0
 function s:GDBMI.output_to_win(msg) abort
   if a:msg == ''| return | endif
+  if a:msg != g:vgdb_prompt
+    let s:output_any_msg = 1
+  elseif s:output_any_msg == 0
+    return
+  endif
   if s:last_msg == g:vgdb_prompt && g:vgdb_prompt != '' && a:msg == g:vgdb_prompt
     "call Echomsg_if_debug('output msg to win, but filtered: ' . a:msg)
     "return
@@ -724,13 +732,14 @@ endfunction
 function! s:GDBMI_Exit() abort
 endfunction
 
-function! s:GDBMI_Execute(cmd, ignore_his = 0) abort
+function! s:GDBMI_Execute(cmd, ignore_his = 0, force_output_prompt = 0) abort
   let s:GDBMI.gdb_mi_output = ''
   let s:GDBMI.in_complete_mode = 0
   if !a:ignore_his
     call s:GDBMI.gdb_his.Reset()
     call s:GDBMI.gdb_his.Add(a:cmd)
   endi
+  let s:output_any_msg = a:force_output_prompt
   call s:GDBMI.Execute(a:cmd)
 endfunction
 
@@ -817,5 +826,5 @@ function! VGDB_Execute() abort
   if cmd == '' && s:last_cmd == '' | call s:gdb_win_append('') | return
   elseif cmd == '' | let cmd = s:last_cmd | endif
   let s:last_cmd = cmd
-  call s:GDBMI_Execute(cmd)
+  call s:GDBMI_Execute(cmd, 0, 1)
 endfunction
