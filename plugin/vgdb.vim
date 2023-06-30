@@ -33,10 +33,11 @@ function s:setup_prompt() abort
   call cursor('$', 999)
 endfunction
 
-function s:go_to_original_win_and_key(key) abort
+function s:go_to_original_win_and_key_and_comeback(key) abort
   if s:original_win_id != 0
     call win_gotoid(s:original_win_id)
-    call feedkeys(a:key)
+    normal! zz
+    call win_gotoid(s:gdb_win_id)
   endif
 endfunction
 
@@ -90,11 +91,11 @@ function s:init_gdb_win() abort
   inoremap <buffer><silent><Down> <ESC>:call GDBWin_History_Down("")<CR>A
   nnoremap <buffer><silent><UP> <ESC>:call GDBWin_History_Up("")<CR>
   nnoremap <buffer><silent><Down> <ESC>:call GDBWin_History_Down("")<CR>
-  nnoremap <buffer><silent> j :call <SID>go_to_original_win_and_key('j')<CR>
-  nnoremap <buffer><silent> k :call <SID>go_to_original_win_and_key('k')<CR>
+  "nnoremap <buffer><silent> j :call <SID>go_to_original_win_and_key('j')<CR>
+  "nnoremap <buffer><silent> k :call <SID>go_to_original_win_and_key('k')<CR>
   "nnoremap <buffer><silent> h :call <SID>go_to_original_win_and_key('h')<CR>
   "nnoremap <buffer><silent> l :call <SID>go_to_original_win_and_key('l')<CR>
-  nnoremap <buffer><silent> zz zz:call <SID>go_to_original_win_and_key('zz')<CR>
+  nnoremap <buffer><silent> zz zz:call <SID>go_to_original_win_and_key_and_comeback('zz')<CR>
   inoremap <buffer><silent><c-j> <ESC>:call GDBWin_History_Down("")<CR>A
   nnoremap <buffer><silent><c-j> :call GDBWin_History_Down("")<CR>
   inoremap <buffer><silent><c-k> <ESC>:call GDBWin_History_Up("")<CR>A
@@ -415,6 +416,8 @@ function s:GDBMI.on_exit_cb(id, data, event) abort
 endfunction
 
 function s:GDBMI.Exit() abort
+  call self.remove_all_bk()
+  call s:unplace_pc_sign()
   if bufwinnr(s:gdb_buf_nr) != 0
     let win_id = bufwinid(s:gdb_buf_nr)
     call win_gotoid(win_id)
@@ -599,7 +602,7 @@ function s:GDBMI.handle_stream_recs(recs) abort
         if stridx(val, '#') == 0
           call s:GDBMI.handle_frame_async_rec(val)
         endif
-        if stridx(val, 'Starting program') == 0
+        if stridx(val, 'Starting program') == 0 || !empty(matchstr(val, 'process.*killed'))
           call s:unplace_pc_sign()
         endif
         call self.output_to_win(val)
