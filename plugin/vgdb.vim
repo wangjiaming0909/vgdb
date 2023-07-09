@@ -618,7 +618,12 @@ function s:GDBMI.handle_stream_recs(recs) abort
         elseif !empty(matchstr(val, '^[0-9]*   ')) || !empty(matchstr(val, '^[0-9]* \}'))
           " filter out step line output
         else
-          call self.output_to_win(val)
+          if s:output_to_popup
+            call VGDB_Preview(s:popup_cmd, val)
+            let s:output_to_popup = 0
+          else
+            call self.output_to_win(val)
+          endif
         endif
       endfor
     elseif stream_rec_key == '@'
@@ -766,8 +771,21 @@ function! s:GDBMI_Toggle_Break() abort
   endif
 endfunction
 
+let s:output_to_popup = 0
+let s:popup_cmd = ''
+function! s:VGDBPrint() abort
+  if bufnr() == s:gdb_buf_nr
+    return
+  endif
+  let word = expand('<cword>')
+  let s:output_to_popup = 1
+  let s:popup_cmd = word
+  call s:GDBMI_Execute('p ' . word, 0)
+endfunction
+
 " we are in the original win now
 function! s:setup_original_win() abort
+  nnoremap <leader>p :call <SID>VGDBPrint()<cr>
   nnoremap <F10> :silent! call <SID>GDBMI_Execute('n', 1)<cr>
   nnoremap <F11> :silent! call <SID>GDBMI_Execute('s', 1)<cr>
   nunmap <F9>
@@ -834,4 +852,8 @@ function! VGDB_Execute() abort
   elseif cmd == '' | let cmd = s:last_cmd | endif
   let s:last_cmd = cmd
   call s:GDBMI_Execute(cmd, 0, 1)
+endfunction
+
+function VGDB_Preview(title, str) abort
+  call float#Preview(a:title, a:str)
 endfunction
