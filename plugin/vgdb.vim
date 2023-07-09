@@ -138,7 +138,10 @@ endfunction
 function! s:gdb_win_append(str) abort
   if a:str == '' | return | endif
   if a:str != ''
-    call appendbufline(s:gdb_buf_nr, '$', a:str)
+    let strs = split(a:str, "\n")
+    for s in strs
+      call appendbufline(s:gdb_buf_nr, '$', s)
+    endfor
   endif
   call win_execute(s:gdb_win_id, "call cursor('$', 999)")
 endfunction
@@ -596,7 +599,7 @@ function s:GDBMI.handle_frame_async_rec(value) abort
     let file_line = val[last_at_idx + 3:]
     let file_line_arr = split(file_line, ':')
     call Echomsg_if_debug('file line arr: ' . file_line_arr[0] . ' file line arr1: ' . file_line_arr[1])
-    call s:gdb_win_load_buf(file_line_arr[0], file_line_arr[1])
+    "call s:gdb_win_load_buf(file_line_arr[0], file_line_arr[1])
   endif
 endfunction
 
@@ -612,8 +615,9 @@ function s:GDBMI.handle_stream_recs(recs) abort
         endif
         if stridx(val, 'Starting program') == 0 || !empty(matchstr(val, 'process.*killed'))
           call s:unplace_pc_sign()
-        elseif empty(matchstr(val, '[0-9]*   ')) && empty(matchstr(val, '[0-9]* \}'))
+        elseif !empty(matchstr(val, '^[0-9]*   ')) || !empty(matchstr(val, '^[0-9]* \}'))
           " filter out step line output
+        else
           call self.output_to_win(val)
         endif
       endfor
@@ -655,6 +659,8 @@ function s:GDBMI.output_to_win(msg) abort
   let msg = substitute(msg, '\\\\', '\\', 'g')
   let msg = substitute(msg, "\\'", "'", 'g')
   let msg = substitute(msg, '\\"', '"', 'g')
+  let msg = substitute(msg, '\\n', "\n", 'g')
+  "let msg = trim(msg, "\n")
   call Echomsg_if_debug('output msg to win: ' . msg)
   call s:gdb_win_append(msg)
   if self.program_state == s:PROGRAM_STATE_RUNNING && a:msg != '' && a:msg != g:vgdb_prompt

@@ -64,7 +64,7 @@ function! gdbmi#gdbmi_parser#Parse(cmd_res) abort
       continue
     endif
     let msg = substitute(msg, '\\t', ' ', 'g')
-    let msg = substitute(msg, '\\n', ' ', 'g')
+    let msg = trim(msg, "\\n")
     "call Echomsg_if_debug('parse rec ' . msg)
     let fir = strpart(msg, 0, 1)
     if fir == '^'
@@ -105,8 +105,8 @@ endfunction
 function! s:parse_stream_recs(msg) abort
   "call g:Echomsg_if_debug('parse stream rec: ' . a:msg)
   let cmd_res = s:parse_cmd(a:msg)
-  let cmd_res = [a:msg[0], a:msg[2:-3]]
-  let key_values = {'value': a:msg[2:-3]}
+  let cmd_res = [a:msg[0], a:msg[2:-2]]
+  let key_values = {'value': a:msg[2:-2]}
 
   if has_key(s:Parser.parse_res.stream_recs, cmd_res[0])
     call add(s:Parser.parse_res.stream_recs[cmd_res[0]], key_values)
