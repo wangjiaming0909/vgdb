@@ -80,7 +80,7 @@ function s:init_gdb_win() abort
   "nnoremap <expr> <buffer> c <SID>gdb_win_modifiable() ? "c" : ""
   nnoremap c :silent! call <SID>GDBMI_Execute('c', 1)<cr>
   nnoremap <expr> <buffer> s <SID>gdb_win_modifiable() ? "s" : ""
-  nnoremap <expr> <buffer> cc <SID>gdb_win_modifiable() ? "cc". g:vgdb_prompt :
+  "nnoremap <expr> <buffer> cc <SID>gdb_win_modifiable() ? "cc". g:vgdb_prompt :
         \ <SID>gdb_win_buf_in_last_line() ? "A" : ""
   nnoremap <expr> <buffer> p "GAp "
   inoremap <buffer> <CR> <ESC>:silent! call VGDB_Execute()<CR>A
@@ -177,6 +177,7 @@ function! s:gdb_win_load_buf(fullname, line) abort
     if bufwinid(s:gdb_buf_nr) != win_getid()
       exec 'buffer ' . bufnr
       call cursor(line, 1)
+      exec 'normal zz'
     else
       "if we are in gdb win
       "if the original win has been closed
@@ -192,6 +193,7 @@ function! s:gdb_win_load_buf(fullname, line) abort
         call win_gotoid(s:original_win_id)
         exec 'buffer ' . bufnr
         call cursor(line, 1)
+        exec 'normal zz'
         call win_gotoid(a_win_id)
       endif
     endif
@@ -359,7 +361,7 @@ function s:GDBCmdCompleter.Complete(prefix) abort
   call self.gdbmi_ins.Execute(cmd)
   let times = 0
   while !self.complete_completed
-    if times >= 1000 | break | endif
+    if times >= 100 | break | endif
     sleep 5m
     let times += 1
   endwhile
@@ -447,6 +449,7 @@ function s:GDBMI.handle_frame_rec(frame) abort
   let frame = a:frame
   if !has_key(frame, 'fullname')
     echomsg 'some frame rec without fullname: ' . string(frame)
+    call s:unplace_pc_sign()
     return
   endif
   let fullname = frame['fullname']
@@ -454,6 +457,8 @@ function s:GDBMI.handle_frame_rec(frame) abort
   call Echomsg_if_debug('stopped, fillname is: ' . fullname . ' line: ' . line)
   if s:gdb_win_load_buf(fullname, line)
     call s:place_pc_sign('DebugPC', fullname, line)
+  else
+    call s:unplace_pc_sign()
   endif
 endfunction
 
@@ -531,6 +536,9 @@ function s:GDBMI.remove_all_bk() abort
 endfunction
 
 function s:GDBMI.remove_bk(bk_id) abort
+  if !has_key(self.breakpoints, a:bk_id)
+    return
+  endif
   let bk = self.breakpoints[a:bk_id]
   let msg = 'bk deleted: ' . bk.fullname . ' line: ' . bk.line
   call self.output_to_win(msg)
@@ -595,7 +603,7 @@ endfunction
 function s:GDBMI.handle_frame_async_rec(value) abort
   let val = trim(a:value)
   let last_at_idx = strridx(val, 'at')
-  if last_at_idx != 0
+  if last_at_idx >= 0
     let file_line = val[last_at_idx + 3:]
     let file_line_arr = split(file_line, ':')
     call Echomsg_if_debug('file line arr: ' . file_line_arr[0] . ' file line arr1: ' . file_line_arr[1])
@@ -856,4 +864,12 @@ endfunction
 
 function VGDB_Preview(title, str) abort
   call float#Preview(a:title, a:str)
+endfunction
+
+function g:CreateFloat(txt) abort
+  let content = ['asd', 'vsa', 'asdaaaaaaaaaaaaaaaaaaa']
+  let opts = {"close": "button", "title": "asdasd"}
+  let output = split(system("fdfind -I -t f -g " . a:txt), '\n')
+  call quickui#textbox#open(output, opts)
+  "call quickui#input#open('output')
 endfunction

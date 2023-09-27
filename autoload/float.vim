@@ -36,3 +36,4 @@ function! s:create_float_win(title, row, col, width, height) abort
         \'title_pos':'center'})
   return s:float_buf_nr
 endfunction
+
