@@ -614,6 +614,8 @@ endfunction
 " ~ & @
 function s:GDBMI.handle_stream_recs(recs) abort
   let recs = a:recs
+  let popup_res = []
+  call add(popup_res, s:popup_cmd)
   for stream_rec_key in keys(recs.stream_recs)
     if stream_rec_key == '~'
       for cli_resp in recs.stream_recs[stream_rec_key]
@@ -626,11 +628,10 @@ function s:GDBMI.handle_stream_recs(recs) abort
         elseif !empty(matchstr(val, '^[0-9]+   ')) || !empty(matchstr(val, '^[0-9]+ \}'))
           " filter out step line output
         else
+          call self.output_to_win(val)
           if s:output_to_popup
-            call VGDB_Preview(s:popup_cmd, val)
-            let s:output_to_popup = 0
-          else
-            call self.output_to_win(val)
+            let msg = substitute(val, '\\n', "", 'g')
+            call add(popup_res, msg)
           endif
         endif
       endfor
@@ -651,6 +652,9 @@ function s:GDBMI.handle_stream_recs(recs) abort
       echomsg recs
     endif
   endfor
+  if len(popup_res) > 1
+    call s:preview(s:popup_cmd, popup_res)
+  endif
 endfunction
 
 let s:last_msg = ''
@@ -720,6 +724,7 @@ function s:GDBMI.handle_parse_res(recs) abort
   call self.handle_async_recs(recs)
   call self.handle_stream_recs(recs)
   call self.handle_other_recs(recs)
+  let s:output_to_popup = 0
 endfunction
 
 function s:GDBMI.Execute(cmd) abort
@@ -781,11 +786,16 @@ endfunction
 
 let s:output_to_popup = 0
 let s:popup_cmd = ''
+
+function VGDB_Preview() abort
+  call s:VGDBPrint()
+endfunction
+
 function! s:VGDBPrint() abort
   if bufnr() == s:gdb_buf_nr
     return
   endif
-  let word = expand('<cword>')
+  let word = expand('<cexpr>')
   let s:output_to_popup = 1
   let s:popup_cmd = word
   call s:GDBMI_Execute('p ' . word, 0)
@@ -862,9 +872,14 @@ function! VGDB_Execute() abort
   call s:GDBMI_Execute(cmd, 0, 1)
 endfunction
 
-function VGDB_Preview(title, str) abort
-  let opts = {'close': 'button', 'title': a:title}
-  call quickui#textbox#open(trim(a:str), opts)
+" only used to deref a pointer
+function s:preview_select_cb() abort
+  
+endfunction
+
+function s:preview(title, contents) abort
+  let opts = {"close": "button", "title": a:title, 'index': '0'}
+  call quickui#listbox#open(a:contents[1:], opts)
 endfunction
 
 function g:VGDB_Attach_Process() abort
@@ -949,4 +964,13 @@ endfunction
 
 function s:find_executable(txt) abort
   return split(system("fdfind -i -I -t x " . a:txt), '\n')
+endfunction
+
+function VGDB_CursorMoved() abort
+  if bufnr() == s:gdb_buf_nr
+    return
+  endif
+  let v = expand('<cexpr>')
+  "let s:output_to_popup = 1
+  "call s:GDBMI_Execute('p ' . v, 0, 1)
 endfunction
