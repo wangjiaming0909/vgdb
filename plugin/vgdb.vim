@@ -864,7 +864,7 @@ endfunction
 
 function VGDB_Preview(title, str) abort
   let opts = {'close': 'button', 'title': a:title}
-  call quickui#textbox#open(a:str, opts)
+  call quickui#textbox#open(trim(a:str), opts)
 endfunction
 
 function g:VGDB_Attach_Process() abort
@@ -890,9 +890,9 @@ endfunction
 function s:process_attach_cb(ps_pid_output, index) abort
   if a:index >= 0
     "echomsg ' start to attach to ' . a:ps_pid_output[a:index]
-    call s:GDBMI.Execute('detach')
-    call s:GDBMI.Execute('file')
-    call s:GDBMI.Execute('attach ' . split(a:ps_pid_output[a:index], ' ')[0])
+    call s:GDBMI_Execute('detach', 0, 1)
+    call s:GDBMI_Execute('file', 0, 1)
+    call s:GDBMI_Execute('attach ' . split(a:ps_pid_output[a:index], ' ')[0], 0, 1)
   endif
 endfunction
 
@@ -902,7 +902,7 @@ function s:attach_file_cb(files, index) abort
   endif
   let f = a:files[a:index]
   if has_key(s:GDBMI, 'job_id')
-    call s:GDBMI.Execute('file ' . f)
+    call s:GDBMI_Execute('file ' . f, 0, 1)
     let fname = strpart(f, 1 + strridx(f, "/"), len(f))
     call Echomsg_if_debug(fname)
     let pid_output = trim(system('pidof ' . fname))
