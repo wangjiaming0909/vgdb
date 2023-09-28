@@ -863,7 +863,8 @@ function! VGDB_Execute() abort
 endfunction
 
 function VGDB_Preview(title, str) abort
-  call float#Preview(a:title, a:str)
+  let opts = {'close': 'button', 'title': a:title}
+  call quickui#textbox#open(a:str, opts)
 endfunction
 
 function g:VGDB_Attach_Process() abort
@@ -875,7 +876,7 @@ function g:VGDB_Attach_Process() abort
     if len(ps) == 0
       call quickui#textbox#open("no process found: " . txt, opts)
     else
-      let AttachCb = function('s:process_attach_cb', [ps, ''])
+      let AttachCb = function('s:process_attach_cb', [ps])
       let opts = {"close": "button", "title": "which process?", 'index': '0', 'callback': AttachCb}
       call quickui#listbox#open(ps, opts)
     endif
@@ -886,15 +887,11 @@ function s:find_process(name) abort
   return split(system('ps -eo pid,cmd | grep ' .a:name . ' | grep -v grep'), '\n')
 endfunction
 
-function s:process_attach_cb(ps_pid_output, f, index) abort
+function s:process_attach_cb(ps_pid_output, index) abort
   if a:index >= 0
     "echomsg ' start to attach to ' . a:ps_pid_output[a:index]
     call s:GDBMI.Execute('detach')
     call s:GDBMI.Execute('file')
-    if len(a:f) > 0
-      call Echomsg_if_debug('attach to file ' . a:f)
-      call s:GDBMI.Execute('file ' . a:f)
-    endif
     call s:GDBMI.Execute('attach ' . split(a:ps_pid_output[a:index], ' ')[0])
   endif
 endfunction
@@ -905,6 +902,7 @@ function s:attach_file_cb(files, index) abort
   endif
   let f = a:files[a:index]
   if has_key(s:GDBMI, 'job_id')
+    call s:GDBMI.Execute('file ' . f)
     let fname = strpart(f, 1 + strridx(f, "/"), len(f))
     call Echomsg_if_debug(fname)
     let pid_output = trim(system('pidof ' . fname))
@@ -926,7 +924,7 @@ function s:attach_file_cb(files, index) abort
     elseif len(ps_pid_output) > 1
       " popup a list ui to choose
       call Echomsg_if_debug(ps_pid_output)
-      let AttachCb = function('s:process_attach_cb', [ps_pid_output, f])
+      let AttachCb = function('s:process_attach_cb', [ps_pid_output])
       let opts = {"close": "button", "title": "which process?", 'index': '0', 'callback': AttachCb}
       call quickui#listbox#open(ps_pid_output, opts)
     endif
