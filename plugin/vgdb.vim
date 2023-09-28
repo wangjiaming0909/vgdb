@@ -866,10 +866,89 @@ function VGDB_Preview(title, str) abort
   call float#Preview(a:title, a:str)
 endfunction
 
-function g:CreateFloat(txt) abort
-  let content = ['asd', 'vsa', 'asdaaaaaaaaaaaaaaaaaaa']
-  let opts = {"close": "button", "title": "asdasd"}
-  let output = split(system("fdfind -I -t f -g " . a:txt), '\n')
-  call quickui#textbox#open(output, opts)
-  "call quickui#input#open('output')
+function g:VGDB_Attach_Process() abort
+  let content = ['attach to process?']
+  let opts = {'close': 'button', 'title': 'attach to?'}
+  let txt = quickui#input#open(content)
+  if len(txt) != 0
+    let ps = s:find_process(txt)
+    if len(ps) == 0
+      call quickui#textbox#open("no process found: " . txt, opts)
+    else
+      let AttachCb = function('s:process_attach_cb', [ps, ''])
+      let opts = {"close": "button", "title": "which process?", 'index': '0', 'callback': AttachCb}
+      call quickui#listbox#open(ps, opts)
+    endif
+  endif
+endfunction
+
+function s:find_process(name) abort
+  return split(system('ps -eo pid,cmd | grep ' .a:name . ' | grep -v grep'), '\n')
+endfunction
+
+function s:process_attach_cb(ps_pid_output, f, index) abort
+  if a:index >= 0
+    "echomsg ' start to attach to ' . a:ps_pid_output[a:index]
+    call s:GDBMI.Execute('detach')
+    call s:GDBMI.Execute('file')
+    if len(a:f) > 0
+      call Echomsg_if_debug('attach to file ' . a:f)
+      call s:GDBMI.Execute('file ' . a:f)
+    endif
+    call s:GDBMI.Execute('attach ' . split(a:ps_pid_output[a:index], ' ')[0])
+  endif
+endfunction
+
+function s:attach_file_cb(files, index) abort
+  if a:index == -1
+    return
+  endif
+  let f = a:files[a:index]
+  if has_key(s:GDBMI, 'job_id')
+    let fname = strpart(f, 1 + strridx(f, "/"), len(f))
+    call Echomsg_if_debug(fname)
+    let pid_output = trim(system('pidof ' . fname))
+    call Echomsg_if_debug(pid_output)
+    let pids = split(pid_output, ' ')
+    call Echomsg_if_debug(pids)
+    let ps_pids = s:find_process(fname)
+    call Echomsg_if_debug(ps_pids)
+    let ps_pid_output = []
+    for ps_pid in ps_pids
+      for pid in pids
+        if pid == split(ps_pid, ' ')[0]
+          call add(ps_pid_output, ps_pid)
+        endif
+      endfor
+    endfor
+    if len(ps_pid_output) == 1
+      call s:process_attach_cb(ps_pid_output, 0)
+    elseif len(ps_pid_output) > 1
+      " popup a list ui to choose
+      call Echomsg_if_debug(ps_pid_output)
+      let AttachCb = function('s:process_attach_cb', [ps_pid_output, f])
+      let opts = {"close": "button", "title": "which process?", 'index': '0', 'callback': AttachCb}
+      call quickui#listbox#open(ps_pid_output, opts)
+    endif
+  endif
+endfunction
+
+function g:VGDB_Attach_File() abort
+  let content = ['attach to?']
+  let opts = {'close': 'button', 'title': 'attach to?'}
+  let txt = quickui#input#open(content)
+  if len(txt) != 0
+    let files = s:find_executable(txt)
+    if len(files) == 0
+      call quickui#textbox#open("no file found: " . txt, opts)
+    else
+      let AttachCb = function('s:attach_file_cb', [files])
+      let opts = {"close": "button", "title": "which executable?", 'index': '0', 'callback': AttachCb}
+      call quickui#listbox#open(files, opts)
+    endif
+  endif
+endfunction
+
+function s:find_executable(txt) abort
+  return split(system("fdfind -i -I -t x " . a:txt), '\n')
 endfunction
