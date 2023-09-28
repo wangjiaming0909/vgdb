@@ -6,9 +6,10 @@ let s:gdb_console_file = '/tmp/gdb_console'
 let g:gdb_mi_output = ''
 let s:gdb_job = -1
 let g:gdb_bin = 'gdb'
-let g:debug = 0
+let g:debug = 1
 let s:gdb_buf_nr = -1
 let s:popup_res = []
+let s:preview_title = ''
 
 function! g:Echomsg_if_debug(str) abort
   if g:debug == 1
@@ -616,7 +617,10 @@ endfunction
 function s:GDBMI.handle_stream_recs(recs) abort
   let recs = a:recs
   if len(s:popup_res) == 0
+    call Echomsg_if_debug('add popup cmd ' . s:popup_cmd)
     call add(s:popup_res, s:popup_cmd)
+  elseif len(s:popup_res) == 1 && s:popup_res[0] == ''
+    let s:popup_res = []
   endif
   for stream_rec_key in keys(recs.stream_recs)
     if stream_rec_key == '~'
@@ -633,6 +637,7 @@ function s:GDBMI.handle_stream_recs(recs) abort
           call self.output_to_win(val)
           if s:output_to_popup
             let msg = substitute(val, '\\n', "", 'g')
+            call Echomsg_if_debug('add msg into popup res ' . msg . ' res: ' . string(s:popup_res))
             call add(s:popup_res, msg)
           endif
         endif
@@ -654,9 +659,6 @@ function s:GDBMI.handle_stream_recs(recs) abort
       echomsg recs
     endif
   endfor
-  if len(s:popup_res) > 1
-    "call s:preview(s:popup_cmd, popup_res)
-  endif
 endfunction
 
 let s:last_msg = ''
@@ -694,8 +696,14 @@ function s:GDBMI.handle_done_rec(done_rec) abort
   endif
   let s:output_to_popup = 0
   if len(s:popup_res) > 1
-    call s:preview(s:popup_cmd, s:popup_res)
+    let tmp_res = s:popup_res
+    call s:reset_popup()
+    call s:preview(s:preview_title, tmp_res)
   endif
+endfunction
+
+function s:reset_popup() abort
+  let s:popup_cmd = ''
   let s:popup_res = []
 endfunction
 
@@ -712,6 +720,7 @@ function s:GDBMI.handle_res_recs(recs) abort
       for err_msg in err_res_arr
         call self.output_to_win(err_msg['msg'])
       endfor
+      call s:reset_popup()
     elseif res_rec_key == 'running'
       let self.program_state = s:PROGRAM_STATE_RUNNING
       " do nothing
@@ -795,22 +804,23 @@ let s:output_to_popup = 0
 let s:popup_cmd = ''
 
 function VGDB_Preview() abort
-  call s:VGDBPrint()
+  if bufnr() != s:gdb_buf_nr
+    let word = expand('<cexpr>')
+    let s:preview_title = word
+    call s:VGDBPrint(word)
+  endif
 endfunction
 
-function! s:VGDBPrint() abort
-  if bufnr() == s:gdb_buf_nr
-    return
-  endif
-  let word = expand('<cexpr>')
+function! s:VGDBPrint(word) abort
   let s:output_to_popup = 1
-  let s:popup_cmd = word
-  call s:GDBMI_Execute('p ' . word)
+  let s:popup_cmd = a:word
+  call Echomsg_if_debug('set popup cmd to: ' . s:popup_cmd)
+  call s:GDBMI_Execute('p ' . a:word)
 endfunction
 
 " we are in the original win now
 function! s:setup_original_win() abort
-  nnoremap <leader>p :call <SID>VGDBPrint()<cr>
+  nnoremap <leader>p :call VGDB_Preview()<cr>
   nnoremap <F10> :silent! call <SID>GDBMI_Execute('n', 1)<cr>
   nnoremap <F11> :silent! call <SID>GDBMI_Execute('s', 1)<cr>
   nunmap <F9>
@@ -879,13 +889,41 @@ function! VGDB_Execute() abort
   call s:GDBMI_Execute(cmd, 0, 1)
 endfunction
 
-" only used to deref a pointer
-function s:preview_select_cb() abort
-  
+" we assume that gdb print max-depth = 1
+" used to deref a pointer or get deeper member
+function s:preview_select_cb(contents, index) abort
+  if a:index >= 0
+    let base = a:contents[0]
+    if a:index == 0
+      " do deref directly
+      let p = '(*' . base . ')'
+      "let s:preview_title = base
+    else
+      let member = split(a:contents[a:index + 1], '=')
+      if stridx(member[1], '0x') == 0
+        " add member to base and dedef
+        let p = '(*' . base . '.' . trim(member[0]) . ')'
+      else
+        "just add member
+        let p = base . '.' . trim(member[0])
+      endif
+      let s:preview_title = s:preview_title . '->' . trim(member[0])
+    endif
+    call Echomsg_if_debug(' preview cb for: ' . p)
+    call s:VGDBPrint(p)
+  endif
 endfunction
 
 function s:preview(title, contents) abort
-  let opts = {"close": "button", "title": a:title, 'index': '0'}
+  call Echomsg_if_debug(string(a:contents))
+  let PreviewCb = function('s:preview_select_cb', [a:contents])
+  let opts = {
+        \"close": "button",
+        \"title": a:title,
+        \'index': '0',
+        \'syntax': 'cpp',
+        \'line': 1,
+        \'callback': PreviewCb}
   call Echomsg_if_debug(string(a:contents))
   call quickui#listbox#open(a:contents[1:], opts)
 endfunction
