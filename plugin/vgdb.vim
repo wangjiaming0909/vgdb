@@ -8,6 +8,7 @@ let s:gdb_job = -1
 let g:gdb_bin = 'gdb'
 let g:debug = 0
 let s:gdb_buf_nr = -1
+let s:popup_res = []
 
 function! g:Echomsg_if_debug(str) abort
   if g:debug == 1
@@ -614,8 +615,9 @@ endfunction
 " ~ & @
 function s:GDBMI.handle_stream_recs(recs) abort
   let recs = a:recs
-  let popup_res = []
-  call add(popup_res, s:popup_cmd)
+  if len(s:popup_res) == 0
+    call add(s:popup_res, s:popup_cmd)
+  endif
   for stream_rec_key in keys(recs.stream_recs)
     if stream_rec_key == '~'
       for cli_resp in recs.stream_recs[stream_rec_key]
@@ -631,7 +633,7 @@ function s:GDBMI.handle_stream_recs(recs) abort
           call self.output_to_win(val)
           if s:output_to_popup
             let msg = substitute(val, '\\n', "", 'g')
-            call add(popup_res, msg)
+            call add(s:popup_res, msg)
           endif
         endif
       endfor
@@ -652,8 +654,8 @@ function s:GDBMI.handle_stream_recs(recs) abort
       echomsg recs
     endif
   endfor
-  if len(popup_res) > 1
-    call s:preview(s:popup_cmd, popup_res)
+  if len(s:popup_res) > 1
+    "call s:preview(s:popup_cmd, popup_res)
   endif
 endfunction
 
@@ -690,6 +692,11 @@ function s:GDBMI.handle_done_rec(done_rec) abort
   if has_key(a:done_rec, 'matches')
     call self.handle_completion_rec(a:done_rec['matches'])
   endif
+  let s:output_to_popup = 0
+  if len(s:popup_res) > 1
+    call s:preview(s:popup_cmd, s:popup_res)
+  endif
+  let s:popup_res = []
 endfunction
 
 " ^
@@ -719,12 +726,12 @@ function s:GDBMI.handle_parse_res(recs) abort
   "call g:Echomsg_if_debug(self.gdbmi_parser.parse_res)
   let recs = a:recs
   " check result rec first
-  call self.handle_res_recs(recs)
   " then check async rec
   call self.handle_async_recs(recs)
   call self.handle_stream_recs(recs)
   call self.handle_other_recs(recs)
-  let s:output_to_popup = 0
+  call self.handle_res_recs(recs)
+  "let s:output_to_popup = 0
 endfunction
 
 function s:GDBMI.Execute(cmd) abort
@@ -798,7 +805,7 @@ function! s:VGDBPrint() abort
   let word = expand('<cexpr>')
   let s:output_to_popup = 1
   let s:popup_cmd = word
-  call s:GDBMI_Execute('p ' . word, 0)
+  call s:GDBMI_Execute('p ' . word)
 endfunction
 
 " we are in the original win now
@@ -879,6 +886,7 @@ endfunction
 
 function s:preview(title, contents) abort
   let opts = {"close": "button", "title": a:title, 'index': '0'}
+  call Echomsg_if_debug(string(a:contents))
   call quickui#listbox#open(a:contents[1:], opts)
 endfunction
 
