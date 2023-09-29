@@ -616,11 +616,9 @@ endfunction
 " ~ & @
 function s:GDBMI.handle_stream_recs(recs) abort
   let recs = a:recs
-  if len(s:popup_res) == 0
+  if len(s:popup_res) == 0 && len(s:popup_cmd) > 0
     call Echomsg_if_debug('add popup cmd ' . s:popup_cmd)
     call add(s:popup_res, s:popup_cmd)
-  elseif len(s:popup_res) == 1 && s:popup_res[0] == ''
-    let s:popup_res = []
   endif
   for stream_rec_key in keys(recs.stream_recs)
     if stream_rec_key == '~'
@@ -694,7 +692,6 @@ function s:GDBMI.handle_done_rec(done_rec) abort
   if has_key(a:done_rec, 'matches')
     call self.handle_completion_rec(a:done_rec['matches'])
   endif
-  let s:output_to_popup = 0
   if len(s:popup_res) > 1
     let tmp_res = s:popup_res
     call s:reset_popup()
@@ -703,8 +700,44 @@ function s:GDBMI.handle_done_rec(done_rec) abort
 endfunction
 
 function s:reset_popup() abort
+  let s:output_to_popup = 0
   let s:popup_cmd = ''
   let s:popup_res = []
+endfunction
+
+function s:gdb_print_err_cb(contents, idx) abort
+  if len(s:preview_stack) > 0
+    let last_cmd = s:preview_stack[-1]
+    call remove(s:preview_stack, -1)
+    let s:preview_title = last_cmd
+    call s:VGDBPrint(last_cmd)
+  endif
+endfunction
+
+function s:gdb_print_show_err(contents, title) abort
+  call Echomsg_if_debug(string(a:contents))
+  let PreviewCb = function('s:gdb_print_err_cb', [a:contents])
+  let opts = {
+        \"close": "button",
+        \"title": a:title,
+        \'index': '0',
+        \'syntax': 'cpp',
+        \'callback': PreviewCb}
+  call Echomsg_if_debug(string(a:contents))
+  call quickui#listbox#open(a:contents, opts)
+endfunction
+
+function s:reset_popup_for_error(err_res) abort
+  if s:output_to_popup == 0
+    return
+  endif
+  let title = s:popup_cmd
+  call s:reset_popup()
+  if len(s:preview_stack) > 0
+    call remove(s:preview_stack, -1)
+    call remove(s:preview_index_stack, -1)
+  endif
+  call s:gdb_print_show_err(a:err_res, title)
 endfunction
 
 " ^
@@ -717,10 +750,13 @@ function s:GDBMI.handle_res_recs(recs) abort
       endfor
     elseif res_rec_key == 'error'
       let err_res_arr = recs.result_recs['error']
+      let popup_msg = []
+      "call add(popup_msg, s:popup_cmd)
       for err_msg in err_res_arr
         call self.output_to_win(err_msg['msg'])
+        call add(popup_msg, string(err_msg['msg']))
       endfor
-      call s:reset_popup()
+      call s:reset_popup_for_error(popup_msg)
     elseif res_rec_key == 'running'
       let self.program_state = s:PROGRAM_STATE_RUNNING
       " do nothing
@@ -802,6 +838,8 @@ endfunction
 
 let s:output_to_popup = 0
 let s:popup_cmd = ''
+let s:preview_stack = []
+let s:preview_index_stack = []
 
 function VGDB_Preview() abort
   if bufnr() != s:gdb_buf_nr
@@ -814,7 +852,11 @@ endfunction
 function! s:VGDBPrint(word) abort
   let s:output_to_popup = 1
   let s:popup_cmd = a:word
-  call Echomsg_if_debug('set popup cmd to: ' . s:popup_cmd)
+  call add(s:preview_stack, a:word)
+  if len(s:preview_index_stack) < len(s:preview_stack)
+    call add(s:preview_index_stack, 0)
+  endif
+  call Echomsg_if_debug('set popup cmd to: ' . s:popup_cmd . ' len of stack: ' . string(len(s:preview_stack) . ' len of idx stack: ' . string(len(s:preview_index_stack))))
   call s:GDBMI_Execute('p ' . a:word)
 endfunction
 
@@ -903,26 +945,54 @@ function s:preview_select_cb(contents, index) abort
       if stridx(member[1], '0x') == 0
         " add member to base and dedef
         let p = '(*' . base . '.' . trim(member[0]) . ')'
+      elseif stridx(trim(member[0]), '<') == 0 && trim(member[0])[-1:] == '>'
+        " base members
+        let base_name = trim(member[0])[1:-2]
+        let p = '(*(' . base_name . '*)' . base . ')'
+      elseif stridx(trim(member[0]), '[') == 0 && trim(member[0])[-1:] == ']'
+        " arr
+        let p = base . trim(member[0])
       else
         "just add member
         let p = base . '.' . trim(member[0])
       endif
-      let s:preview_title = s:preview_title . '->' . trim(member[0])
+      let s:preview_title = p
     endif
     call Echomsg_if_debug(' preview cb for: ' . p)
+    call remove(s:preview_index_stack, -1)
+    call add(s:preview_index_stack, a:index)
     call s:VGDBPrint(p)
+  else
+    if len(s:preview_stack) > 0
+      call remove(s:preview_stack, -1)
+      call remove(s:preview_index_stack, -1)
+    endif
+    if len(s:preview_stack) > 0
+      let last_cmd = s:preview_stack[-1]
+      call remove(s:preview_stack, -1)
+      let s:preview_title = last_cmd
+      call s:VGDBPrint(last_cmd)
+    endif
   endif
 endfunction
 
 function s:preview(title, contents) abort
   call Echomsg_if_debug(string(a:contents))
   let PreviewCb = function('s:preview_select_cb', [a:contents])
+  if len(s:preview_index_stack) > 0
+    let idx = s:preview_index_stack[-1]
+  else
+    let idx = 0
+  endif
+
+  "\"w": 1000,
   let opts = {
         \"close": "button",
         \"title": a:title,
-        \'index': '0',
+        \'index': idx,
         \'syntax': 'cpp',
         \'line': 1,
+        \'col': 1,
         \'callback': PreviewCb}
   call Echomsg_if_debug(string(a:contents))
   call quickui#listbox#open(a:contents[1:], opts)
