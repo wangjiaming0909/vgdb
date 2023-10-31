@@ -124,7 +124,7 @@ function! s:gdb_win_buf_in_last_line() abort
 endfunction
 
 function! s:go_to_gdb_win() abort
-  if bufwinnr(s:gdb_buf_nr) == -1
+  if len(win_findbuf(s:gdb_buf_nr)) == 0
     call GDBWin_Show()
   endif
   call win_gotoid(s:gdb_win_id)
@@ -223,14 +223,17 @@ function s:ensure_buf_loaded(filename) abort
 endfunction
 
 function! GDBWin_Show() abort
-  if s:gdb_buf_nr == -1 || bufwinnr(s:gdb_buf_nr) == -1
+  if s:gdb_buf_nr == -1 || len(win_findbuf(s:gdb_buf_nr)) == 0
     call GDBWin_Create()
     call s:restore_original_maps()
   else
-    if bufwinnr(s:gdb_buf_nr) == -1
+    if len(win_findbuf(s:gdb_buf_nr)) == 0
       silent! execute 'vertical topleft ' . g:gdb_win_width . ' split' . s:gdb_console_file
       let s:gdb_win_id = win_getid()
       call Echomsg_if_debug('recreate gdb win')
+    elseif bufwinid(s:gdb_buf_nr) == -1
+      " some window that do not have gdb_buf
+      call s:go_to_gdb_win()
     else
       call GDBWin_Hide()
     endif
@@ -256,7 +259,7 @@ function! s:record_gdb_win_width() abort
 endfunction
 
 function! GDBWin_Hide() abort
-  if bufwinnr(s:gdb_buf_nr) == -1
+  if len(win_findbuf(s:gdb_buf_nr)) == 0
     return
   endif
   call s:go_to_gdb_win()
@@ -910,7 +913,8 @@ function! VGDB_Interrupt() abort
         \|| s:GDBMI.program_state == s:PROGRAM_STATE_STOPPED
         \|| s:GDBMI.program_state ==  s:PROGRAM_STATE_BK_HIT
     call s:gdb_win_append('Quit')
-    call s:setup_prompt()
+    call appendbufline(s:gdb_buf_nr, "$", g:vgdb_prompt)
+    "call s:setup_prompt()
     return
   endif
   let pid = jobpid(s:GDBMI.job_id)
@@ -921,6 +925,12 @@ endfunction
 let s:last_cmd = ''
 function! VGDB_Execute() abort
   let line = getline('.')
+  " if some err msg, no a real cmd
+  if stridx(line, g:vgdb_prompt) != 0 || line == g:vgdb_prompt
+    call s:setup_prompt()
+    let s:last_cmd = ''
+    return
+  endif
   let cmd = strpart(line, len(g:vgdb_prompt))
   if cmd == '' && s:last_cmd == '' | call s:gdb_win_append('') | return
   elseif cmd == '' | let cmd = s:last_cmd | endif
