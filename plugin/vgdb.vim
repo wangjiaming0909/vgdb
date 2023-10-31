@@ -6,7 +6,7 @@ let s:gdb_console_file = '/tmp/gdb_console'
 let g:gdb_mi_output = ''
 let s:gdb_job = -1
 let g:gdb_bin = 'gdb'
-let g:debug = 1
+let g:debug = 0
 let s:gdb_buf_nr = -1
 let s:popup_res = []
 let s:preview_title = ''
@@ -98,7 +98,7 @@ function s:init_gdb_win() abort
   "nnoremap <buffer><silent> k :call <SID>go_to_original_win_and_key('k')<CR>
   "nnoremap <buffer><silent> h :call <SID>go_to_original_win_and_key('h')<CR>
   "nnoremap <buffer><silent> l :call <SID>go_to_original_win_and_key('l')<CR>
-  nnoremap <buffer><silent> zz zz:call <SID>go_to_original_win_and_key_and_comeback('zz')<CR>
+  "nnoremap <buffer><silent> zz zz:call <SID>go_to_original_win_and_key_and_comeback('zz')<CR>
   inoremap <buffer><silent><c-j> <ESC>:call GDBWin_History_Down("")<CR>A
   nnoremap <buffer><silent><c-j> :call GDBWin_History_Down("")<CR>
   inoremap <buffer><silent><c-k> <ESC>:call GDBWin_History_Up("")<CR>A
@@ -919,6 +919,7 @@ function! VGDB_Interrupt() abort
   endif
   let pid = jobpid(s:GDBMI.job_id)
   call system('kill -2 ' . pid)
+  "call s:setup_prompt()
 endfunction
 
 let s:last_cmd = ''
