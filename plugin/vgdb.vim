@@ -80,7 +80,7 @@ function s:init_gdb_win() abort
   nnoremap <expr> <buffer> dd <SID>gdb_win_modifiable() ? "ddo".g:vgdb_prompt :
         \ <SID>gdb_win_buf_in_last_line() ? "A" : ""
   "nnoremap <expr> <buffer> c <SID>gdb_win_modifiable() ? "c" : ""
-  nnoremap c :silent! call <SID>GDBMI_Execute('c', 1)<cr>
+  "nnoremap c :silent! call <SID>GDBMI_Execute('c', 1)<cr>
   nnoremap <expr> <buffer> s <SID>gdb_win_modifiable() ? "s" : ""
   "nnoremap <expr> <buffer> cc <SID>gdb_win_modifiable() ? "cc". g:vgdb_prompt :
         \ <SID>gdb_win_buf_in_last_line() ? "A" : ""
@@ -868,9 +868,9 @@ function! s:setup_original_win() abort
   nunmap <F9>
   nnoremap <F9> :silent! call <SID>GDBMI_Execute('fin', 1)<cr>
   nnoremap <F8> :silent! call <SID>GDBMI_Execute('f', 1)<cr>
-  nnoremap c :silent! call <SID>GDBMI_Execute('c', 1)<cr>
+  nnoremap <F6> :silent! call <SID>GDBMI_Execute('c', 1)<cr>
   nnoremap <c-c> :call VGDB_Interrupt()<cr>
-  nnoremap p :silent! call <SID>gdb_win_key('p')<cr>
+  nnoremap <TAB> :silent! call <SID>gdb_win_key('p')<cr>
 
   nnoremap <c-up> :silent! call <SID>GDBMI_Execute('up', 1)<cr>
   nnoremap <c-down> :silent! call <SID>GDBMI_Execute('down', 1)<cr>
@@ -883,12 +883,8 @@ function! s:setup_original_win() abort
   nnoremap t :silent! call <sid>gdb_win_key('t')<cr>
 
   let s:original_win_unmap = {
-        \'p': 'nunmap p',
-        \'c': 'nunmap c'
         \}
   let s:original_win_map = {
-        \'p': "nnoremap p :silent! call <SID>gdb_win_key('p')<cr>",
-        \'c': "nnoremap c :silent! call <SID>GDBMI_Execute('c', 1)<cr>"
         \}
   set mouse=a
   set signcolumn=no
