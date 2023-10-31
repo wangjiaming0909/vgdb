@@ -678,6 +678,8 @@ function s:GDBMI.handle_stream_recs(recs) abort
         elseif stridx(val, 'Attaching to process') == 0
           " file command
           call self.re_toggle_bks()
+        elseif stridx(val, 'Detaching from program') == 0
+          call s:unplace_pc_sign()
         else
           call self.output_to_win(val)
           if s:output_to_popup
