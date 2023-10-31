@@ -540,6 +540,23 @@ function s:GDBMI.remove_all_bk() abort
   endfor
 endfunction
 
+function s:get_signs() abort
+  let out_signs = []
+  let signs = sign_getplaced()
+  for sign_map in signs
+    let sign_arr = sign_map['signs']
+    for s in sign_arr
+      let si = {}
+      let si.lnum = s['lnum']
+      let si.id = s['id']
+      let si.name = s['name']
+      let si.bufnr = sign_map['bufnr']
+      call add(out_signs, si)
+    endfor
+  endfor
+  return out_signs
+endfunction
+
 function s:GDBMI.remove_bk(bk_id) abort
   if !has_key(self.breakpoints, a:bk_id)
     return
@@ -551,6 +568,30 @@ function s:GDBMI.remove_bk(bk_id) abort
   call sign_unplace('', {'id': bk.sign_id})
   call sign_unplace('', {'id': bk.sign_id})
   unlet self.breakpoints[a:bk_id]
+endfunction
+
+function s:GDBMI.update_bk_with_sign() abort
+  let bks = {}
+  let signs_arr = s:get_signs()
+  for [id, bk] in items(self.breakpoints)
+    for s in signs_arr
+      if s.id == bk.sign_id
+        let bk.line = s.lnum
+        let bks[id] = bk
+      endif
+    endfor
+  endfor
+  return bks
+endfunction
+
+function s:GDBMI.re_toggle_bks() abort
+  let bks = self.update_bk_with_sign()
+  call self.Execute('delete breakpoints')
+  call self.remove_all_bk()
+  for [id, bk] in items(bks)
+    let cmd = 'b ' . bk.fullname . ':' . bk.line
+    call self.Execute(cmd)
+  endfor
 endfunction
 
 function s:GDBMI.handle_bk_event(key, value) abort
@@ -634,6 +675,9 @@ function s:GDBMI.handle_stream_recs(recs) abort
           call s:unplace_pc_sign()
         elseif !empty(matchstr(val, '^[0-9]+   ')) || !empty(matchstr(val, '^[0-9]+ \}'))
           " filter out step line output
+        elseif stridx(val, 'Attaching to process') == 0
+          " file command
+          call self.re_toggle_bks()
         else
           call self.output_to_win(val)
           if s:output_to_popup
@@ -850,6 +894,10 @@ function VGDB_Preview() abort
     let s:preview_title = word
     call s:VGDBPrint(word)
   endif
+endfunction
+
+function VGDB_Toggle_BreakPoint()
+  call s:GDBMI_Toggle_Break()
 endfunction
 
 function! s:VGDBPrint(word) abort
