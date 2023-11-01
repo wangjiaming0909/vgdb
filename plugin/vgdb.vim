@@ -49,6 +49,7 @@ function s:init_gdb_win() abort
   setl signcolumn=no
   setl scrolloff=1
   setl nonu
+  setl syntax=vgdb
   setl bh=hide
   "setl noswapfile
   setl buftype=prompt
