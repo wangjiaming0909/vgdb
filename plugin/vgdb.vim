@@ -109,12 +109,14 @@ function s:init_gdb_win() abort
   inoremap <buffer> <silent> <c-c> <ESC>:call VGDB_Interrupt()<cr>A
   nnoremap <buffer> <silent> <c-c> :call VGDB_Interrupt()<cr>
 
-  hi DbgBreakPoint    guibg=darkblue  ctermfg=none term=reverse ctermbg=3
+  hi DbgBreakPoint    guibg=darkblue  ctermfg=none term=reverse ctermbg=none
+  hi DbgBreakPointText guibg=none  ctermfg=red term=reverse ctermbg=none
   hi DbgDisabledBreak guibg=lightblue guifg=none ctermfg=none ctermbg=202
   hi DbgPC            guibg=Orange    guifg=none gui=bold ctermbg=17 ctermfg=none
-  sign define DebugBP  numhl=DbgBreakPoint  text=B>
+  hi DbgPCText        guibg=Orange    guifg=none gui=bold ctermbg=17 ctermfg=Yellow
+  sign define DebugBP  numhl=DbgBreakPoint  text=● texthl=DbgBreakPointText
   sign define DebugDBP numhl=DbgDisabledBreak linehl=DbgDisabledBreak text=b> texthl=DbgDisabledBreak
-  sign define DebugPC  linehl=DbgPC            text=>> texthl=DbgPC
+  sign define DebugPC  linehl=DbgPC            text=➤ texthl=DbgPCText
 endfunction
 
 function! s:gdb_win_buf_in_last_line() abort
@@ -514,7 +516,7 @@ function s:GDBMI.add_bk(bk) abort
   let self.breakpoints[a:bk.id] = a:bk
   call s:ensure_buf_loaded(a:bk.fullname)
   if a:bk.enabled
-    let sign_id = sign_place(0, "", 'DebugBP', a:bk.fullname, {'lnum': a:bk.line})
+    let sign_id = sign_place(0, "", 'DebugBP', a:bk.fullname, {'lnum': a:bk.line, 'priority': 99})
     let self.breakpoints[a:bk.id].sign_id = sign_id
     call Echomsg_if_debug('place sign id: ' . sign_id . ' for bk: ' . string(a:bk))
   else
@@ -700,6 +702,7 @@ function s:GDBMI.handle_stream_recs(recs) abort
           call s:unplace_pc_sign()
         endif
       endfor
+      call self.output_to_win(output['value'])
       " do nothing, eat the output
     else
       "should not be here
@@ -941,7 +944,7 @@ function! s:setup_original_win() abort
   let s:original_win_map = {
         \}
   set mouse=a
-  set signcolumn=no
+  "set signcolumn=yes
 endfunction
 
 let s:original_win_id = 0
