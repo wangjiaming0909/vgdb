@@ -906,6 +906,14 @@ function VGDB_Toggle_BreakPoint()
   call s:GDBMI_Toggle_Break()
 endfunction
 
+function VGDB_Detach() abort
+  call s:GDBMI_Execute('detach', 1)
+endfunction
+
+function VGDB_Continue() abort
+  call s:GDBMI_Execute('c', 1)
+endfunction
+
 function! s:VGDBPrint(word) abort
   let s:output_to_popup = 1
   let s:popup_cmd = a:word
