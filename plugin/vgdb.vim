@@ -5,7 +5,7 @@ let g:gdb_win_width = 40
 let s:gdb_console_file = '/tmp/gdb_console'
 let g:gdb_mi_output = ''
 let s:gdb_job = -1
-let g:gdb_bin = 'gdb'
+let g:gdb_bin = '/root/codes/gdb-13.2/gdb/gdb'
 let g:debug = 0
 let s:gdb_buf_nr = -1
 let s:popup_res = []
@@ -113,7 +113,7 @@ function s:init_gdb_win() abort
   hi DbgBreakPointText guibg=none  ctermfg=red term=reverse ctermbg=none
   hi DbgDisabledBreak guibg=lightblue guifg=none ctermfg=none ctermbg=202
   hi DbgPC            guibg=Orange    guifg=none gui=bold ctermbg=17 ctermfg=none
-  hi DbgPCText        guibg=Orange    guifg=none gui=bold ctermbg=17 ctermfg=Yellow
+  hi DbgPCText        guibg=Orange    guifg=none gui=bold ctermbg=none ctermfg=Yellow
   sign define DebugBP  numhl=DbgBreakPoint  text=● texthl=DbgBreakPointText
   sign define DebugDBP numhl=DbgDisabledBreak linehl=DbgDisabledBreak text=b> texthl=DbgDisabledBreak
   sign define DebugPC  linehl=DbgPC            text=➤ texthl=DbgPCText
@@ -1158,4 +1158,9 @@ function VGDB_CursorMoved() abort
   let v = expand('<cexpr>')
   "let s:output_to_popup = 1
   "call s:GDBMI_Execute('p ' . v, 0, 1)
+endfunction
+
+function Test() abort
+  python import vdb
+  python vdb.Test_dbg_win()
 endfunction

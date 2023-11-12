@@ -39,10 +39,30 @@ def getbufinfo(nr):
         if info['bufnr'] == str(nr):
             return info
 
+def setwinlocal(winid: int, opt: str, val = None):
+    if val is not None:
+        if type(val) is int:
+            call("nvim_set_option_value('%s', %d, {'win': %d})" % (opt, val, winid))
+        elif type(val) is str:
+            call("nvim_set_option_value('%s', '%s', {'win': %d})" % (opt, val, winid))
+        elif type(val) is bool:
+            if val:
+                bool_val = 'v:true'
+            else:
+                bool_val = 'v:false'
+            call("nvim_set_option_value('%s', %s, {'win': %d})" % (opt, bool_val, winid))
+
 ## if val is a str: no, pass in as 'no', add a quote to it
 ## if val is a number, pass in as a str
-def setbuflocal(winid: int, bufnr: int, opt: str, val: str):
-    call("nvim_set_option_value('%s', %s, \
-         {'scope': 'local',\
-         'win': %d},\
-         'buf': %d)" % (opt, val, winid, bufnr))
+def setbuflocal(bufnr: int, opt: str, val = None):
+    if val is not None:
+        if type(val) is int:
+            call("nvim_set_option_value('%s', %d, {'buf': %d})" % (opt, val, bufnr))
+        elif type(val) is str:
+            call("nvim_set_option_value('%s', '%s', {'buf': %d})" % (opt, val, bufnr))
+        elif type(val) is bool:
+            if val:
+                bool_val = 'v:true'
+            else:
+                bool_val = 'v:false'
+            call("nvim_set_option_value('%s', %s, {'buf': %d})" % (opt, bool_val, bufnr))
