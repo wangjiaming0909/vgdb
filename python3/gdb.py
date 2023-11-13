@@ -28,7 +28,7 @@ class GDB(pyvdb.DBG):
                     continue
                 actives = self.epoller_.poll(0.5)
                 if len(actives) > 0:
-                    logger.logger.debug(self.p_.stdout.read())
+                    logger._logger.debug(self.p_.stdout.read())
                     actives = []
         self.output_handler_running_ = False
 
@@ -38,13 +38,13 @@ class GDB(pyvdb.DBG):
         while not self.exit_:
             actives = self.mi_epoller_.poll(0.5)
             if len(actives) > 0:
-                logger.logger.debug(os.read(self.pty_master_fd_, 4096))
+                logger._logger.debug(os.read(self.pty_master_fd_, 4096))
                 actives = []
 
     def start(self):
         self.p_ = subprocess.Popen(self.args_, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if self.p_ is None or self.p_.stdout is None or self.p_.stderr is None:
-            logger.logger.error('failed to start gdb with cmd: %s' % self.args_)
+            logger._logger.error('failed to start gdb with cmd: %s' % self.args_)
             raise Exception('start gdb failed, stdout or stderr is None')
         self.epoller_.register(self.p_.stdout.fileno(), select.POLLIN)
         self.epoller_.register(self.p_.stderr.fileno(), select.POLLIN)
@@ -61,7 +61,7 @@ class GDB(pyvdb.DBG):
             return
         if self.p_.stdin.writable():
             len = self.p_.stdin.write((cmd+'\n').encode('utf-8'))
-            logger.logger.debug("execute with len: %d" % len)
+            logger._logger.debug("execute with len: %d" % len)
             self.p_.stdin.flush()
 
     def stop(self):
@@ -76,8 +76,6 @@ class GDB(pyvdb.DBG):
 
 
 if __name__ == '__main__':
-    import logger as log
-    log.init_logging()
     gdb = GDB()
     gdb.start()
     gdb.execute('file ~/codes/cgdb/build/cgdb/cgdb')

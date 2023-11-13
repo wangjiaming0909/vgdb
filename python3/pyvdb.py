@@ -1,5 +1,6 @@
 import configs
-from vdb_win import VDBWin
+import vdb_win
+import logger
 
 class DBG:
     def __init__(self):
@@ -28,7 +29,7 @@ class VDBEventHandler:
 
 class VDB:
     def __init__(self):
-        self.dbg_win_ = VDBWin()
+        self.dbg_win_ = vdb_win.VDBWin()
         self.dbg_name_ = configs.get_config('dbg')
         self.dbg_: DBG = dbgs[self.dbg_name_]
         self.cbs_ = CallBacks(self)
@@ -50,6 +51,9 @@ class CallBacks:
         self.vdb_ = vdb
     def on_attached(self):
         pass
+
+def Test():
+    vdb_win.Test_dbg_win()
 
 if __name__ == '__main__':
     import os

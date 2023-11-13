@@ -1161,6 +1161,6 @@ function VGDB_CursorMoved() abort
 endfunction
 
 function Test() abort
-  python import vdb
-  python vdb.Test_dbg_win()
+  python import pyvdb
+  python pyvdb.Test()
 endfunction

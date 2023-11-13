@@ -1,11 +1,11 @@
-from logger import logger
+from logger import _logger
 
 def assert_fail(msg):
-    logger.error(msg)
+    _logger.error(msg)
     print(msg)
 
 def vdb_assert(expr: bool, msg: str):
     if not expr:
-        logger.error(msg)
+        _logger.error(msg)
         print(msg)
         exit(0)
