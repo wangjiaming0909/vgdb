@@ -1,10 +1,10 @@
-import vdb
+import pyvdb
 import select, os, threading, time, subprocess
 import logger
 
-class GDB(vdb.DBG):
+class GDB(pyvdb.DBG):
     def __init__(self):
-        self.parent: vdb.DBG = vdb.DBG.__init__(self)
+        super().__init__()
         self.p_ = None
         self.args_ = ['gdb']
         self.epoller_ = select.epoll()
@@ -16,20 +16,25 @@ class GDB(vdb.DBG):
         self.slave_pty_name_ = None
         self.output_handler_running_ = False
         self.mi_output_handler_ = threading.Thread(target=GDB.handle_mi_output, args=[self])
-    
+
     def handle_output(self):
         self.output_handler_running_ = True
-        while not self.exit_:
-            if not self.p_.stdout.readable():
-                time.sleep(500)
-                continue
-            actives = self.epoller_.poll(0.5)
-            if len(actives) > 0:
-                logger.logger.debug(self.p_.stdout.read1())
-                actives = []
+        if self.p_ is not None:
+            while not self.exit_:
+                if self.p_.stdout is None:
+                    break
+                if not self.p_.stdout.readable():
+                    time.sleep(500)
+                    continue
+                actives = self.epoller_.poll(0.5)
+                if len(actives) > 0:
+                    logger.logger.debug(self.p_.stdout.read())
+                    actives = []
         self.output_handler_running_ = False
-    
+
     def handle_mi_output(self):
+        if self.pty_master_fd_ is None:
+            return
         while not self.exit_:
             actives = self.mi_epoller_.poll(0.5)
             if len(actives) > 0:
@@ -38,6 +43,9 @@ class GDB(vdb.DBG):
 
     def start(self):
         self.p_ = subprocess.Popen(self.args_, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if self.p_ is None or self.p_.stdout is None or self.p_.stderr is None:
+            logger.logger.error('failed to start gdb with cmd: %s' % self.args_)
+            raise Exception('start gdb failed, stdout or stderr is None')
         self.epoller_.register(self.p_.stdout.fileno(), select.POLLIN)
         self.epoller_.register(self.p_.stderr.fileno(), select.POLLIN)
         self.pty_master_fd_, self.pty_slave_fd_ = os.openpty()
@@ -49,6 +57,8 @@ class GDB(vdb.DBG):
             self.execute('new-ui mi %s' % self.slave_pty_name_)
 
     def execute(self, cmd: str):
+        if self.p_ is None or self.p_.stdin is None:
+            return
         if self.p_.stdin.writable():
             len = self.p_.stdin.write((cmd+'\n').encode('utf-8'))
             logger.logger.debug("execute with len: %d" % len)
@@ -60,8 +70,8 @@ class GDB(vdb.DBG):
             self.p_.terminate()
 
     def interrupte(self):
-        if self.p_ is not None:
-            self.p_.stdin.write('')
+        if self.p_ is not None and self.p_.stdin is not None:
+            self.p_.stdin.write(b'')
 
 
 

@@ -1,18 +1,17 @@
 import configs
-from logger import logger
 from vdb_win import VDBWin
 
 class DBG:
     def __init__(self):
         self.cbs_ = None
-    
+
     def set_cbs(self, cbs):
         self.cbs_ = cbs
 
     def start(self):
         pass
 
-    def execute(self):
+    def execute(self, cmd: str):
         pass
 
 dbgs = {}

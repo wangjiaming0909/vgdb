@@ -38,6 +38,7 @@ def getbufinfo(nr):
     for info in infos:
         if info['bufnr'] == str(nr):
             return info
+    return {}
 
 def setwinlocal(winid: int, opt: str, val = None):
     if val is not None:
