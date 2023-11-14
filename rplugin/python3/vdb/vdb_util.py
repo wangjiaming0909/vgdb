@@ -1,4 +1,4 @@
-from logger import _logger
+from vdb.logger import _logger
 
 def assert_fail(msg):
     _logger.error(msg)

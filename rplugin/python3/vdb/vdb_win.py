@@ -1,9 +1,11 @@
-import configs
-import logger
-import vdb_util
+from vdb import configs
+from vdb import logger
+from vdb import vdb_util
+from vdb import vimapi
 
 class VDBWin:
-    def __init__(self) -> None:
+    def __init__(self, nvim) -> None:
+        self.nvim_ = nvim
         if logger.get_logger() is None:
             raise Exception("logger not inited")
         self.buf_file_ = '/tmp/.vdb_console'
@@ -16,13 +18,12 @@ class VDBWin:
         self.dbg_buf_nr_ = None
 
     def setup_dbg_win(self):
-        import vimapi
         def set_dbg_buf_local_opt(opt: str, val):
             if self.dbg_buf_nr_ is not None:
-                vimapi.setbuflocal(self.dbg_buf_nr_, opt, val)
+                vimapi.setbuflocal(self.nvim_, self.dbg_buf_nr_, opt, val)
         def set_dbg_win_local_opt(opt: str, val):
             if self.dbg_win_id_ is not None:
-                vimapi.setwinlocal(self.dbg_win_id_, opt, val)
+                vimapi.setwinlocal(self.nvim_, self.dbg_win_id_, opt, val)
         set_dbg_win_local_opt('signcolumn', 'no')
         set_dbg_win_local_opt('scrolloff', 1)
         set_dbg_win_local_opt('nu', False)
@@ -30,60 +31,56 @@ class VDBWin:
         set_dbg_buf_local_opt('bh', 'hide')
         set_dbg_buf_local_opt('buftype', 'prompt')
         set_dbg_win_local_opt('statusline', '%<%F[%1*%M%*%n%R%H]')
-        vimapi.execute("autocmd BufModifiedSet <buffer=%d> set nomodified" % self.dbg_buf_nr_)
-        vimapi.execute("autocmd InsertCharPre <buffer=%d> python3 import vdb_win" % self.dbg_buf_nr_)
+        vimapi.execute(self.nvim_, "autocmd BufModifiedSet <buffer=%d> set nomodified" % self.dbg_buf_nr_)
+        vimapi.execute(self.nvim_, "autocmd InsertCharPre <buffer=%d> python3 import vdb_win" % self.dbg_buf_nr_)
 
     def create(self):
-        import vimapi
         if self.dbg_win_id_ is not None:
             print('DBG win already created')
             return
-        self.original_win_id_ = vimapi.win_getid()
+        self.original_win_id_ = vimapi.win_getid(self.nvim_)
         logger.get_logger().debug('original win id: %d' % self.original_win_id_)
-        vimapi.execute("vertical topleft %d split %s" % (self.win_width_, self.buf_file_))
+        vimapi.execute(self.nvim_, "vertical topleft %d split %s" % (self.win_width_, self.buf_file_))
         # now we are in the dbg_win
-        self.dbg_win_id_ = vimapi.win_getid()
+        self.dbg_win_id_ = vimapi.win_getid(self.nvim_)
         logger.get_logger().debug('dbg win id: %d' % self.dbg_win_id_)
-        self.dbg_buf_nr_ = vimapi.bufnr()
+        self.dbg_buf_nr_ = vimapi.bufnr(self.nvim_)
         self.setup_dbg_win()
-        vimapi.call("cursor('$', 999)")
+        vimapi.call(self.nvim_, "cursor('$', 999)")
         # get back to the original win
-        vimapi.win_gotoid(self.original_win_id_)
+        vimapi.win_gotoid(self.nvim_, self.original_win_id_)
 
     def show(self):
-        import vimapi
-        if self.dbg_buf_nr_ is None or not vimapi.bufexists(self.dbg_buf_nr_):
-            if self.dbg_win_id_ is None or vimapi.win_id2win(self.dbg_win_id_) == 0:
+        if self.dbg_buf_nr_ is None or not vimapi.bufexists(self.nvim_, self.dbg_buf_nr_):
+            if self.dbg_win_id_ is None or vimapi.win_id2win(self.nvim_, self.dbg_win_id_) == 0:
                 logger.get_logger().debug('start to create dbg win')
                 self.create()
             else:
                 logger.get_logger().debug('start to load dbg buf')
-                self.dbg_buf_nr_ = vimapi.bufadd(self.buf_file_)
-                vimapi.win_execute(self.dbg_win_id_, 'call bufload(%d)' % self.dbg_buf_nr_)
+                self.dbg_buf_nr_ = vimapi.bufadd(self.nvim_, self.buf_file_)
+                vimapi.win_execute(self.nvim_, self.dbg_win_id_, 'call bufload(%d)' % self.dbg_buf_nr_)
         else:
-            if self.dbg_win_id_ is None or vimapi.win_id2win(self.dbg_win_id_) == 0:
+            if self.dbg_win_id_ is None or vimapi.win_id2win(self.nvim_, self.dbg_win_id_) == 0:
                 logger.get_logger().debug('start to create dbg win and load buf')
-                self.dbg_buf_nr_ = vimapi.bufadd(self.buf_file_)
-                vimapi.execute("vertical topleft %d split %s" % (self.win_width_, self.buf_file_))
-                self.dbg_win_id_ = vimapi.win_getid()
+                self.dbg_buf_nr_ = vimapi.bufadd(self.nvim_, self.buf_file_)
+                vimapi.execute(self.nvim_, "vertical topleft %d split %s" % (self.win_width_, self.buf_file_))
+                self.dbg_win_id_ = vimapi.win_getid(self.nvim_)
             else:
                 logger.get_logger().debug('start to load dbg buf %d', self.dbg_win_id_)
-                vimapi.win_execute(self.dbg_win_id_, 'call bufload(%d)' % self.dbg_buf_nr_)
+                vimapi.win_execute(self.nvim_, self.dbg_win_id_, 'call bufload(%d)' % self.dbg_buf_nr_)
         # go back to original win id
-        if self.original_win_id_ is not None and vimapi.win_id2win(self.original_win_id_) != 0:
-            vimapi.win_gotoid(self.original_win_id_)
+        if self.original_win_id_ is not None and vimapi.win_id2win(self.nvim_, self.original_win_id_) != 0:
+            vimapi.win_gotoid(self.nvim_, self.original_win_id_)
 
     def hide(self):
-        import vimapi
-        if self.dbg_win_id_ is not None and 0 != vimapi.win_id2win(self.dbg_win_id_):
-            vimapi.win_gotoid(self.dbg_win_id_)
-            self.win_width_ = vimapi.winwidth(0)
-            vimapi.execute('hide')
+        if self.dbg_win_id_ is not None and 0 != vimapi.win_id2win(self.nvim_, self.dbg_win_id_):
+            vimapi.win_gotoid(self.nvim_,self.dbg_win_id_)
+            self.win_width_ = vimapi.winwidth(self.nvim_, 0)
+            vimapi.execute(self.nvim_, 'hide')
 
     def output(self, msg: bytes):
-        import vimapi
         if self.dbg_buf_nr_ is not None:
-            vimapi.appendbufline(self.dbg_buf_nr_, str(msg))
+            vimapi.appendbufline(self.nvim_, self.dbg_buf_nr_, str(msg))
 
 
 
@@ -97,7 +94,6 @@ def get_vdb_win() -> VDBWin:
     return _vdb_win
 
 def Test_dbg_win():
-    import vimapi
     vdb_win = get_vdb_win()
     if vdb_win.original_win_id_ != vimapi.win_getid():
         msg = "assert go back to original win failed, cur win_id: %d, original_win_id: %d" % (vimapi.win_getid(), vdb_win.original_win_id_)

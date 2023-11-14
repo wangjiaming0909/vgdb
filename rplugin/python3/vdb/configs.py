@@ -24,7 +24,7 @@ def get_sec_config(sec: str, o: str) -> str:
         reload_configs()
     return configs[sec][o]
 
-def has_config(o: str) -> str:
+def has_config(o: str) -> bool:
     global configs
     if configs is None:
         reload_configs()

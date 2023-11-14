@@ -1,6 +1,6 @@
-import pyvdb
 import select, os, threading, time, subprocess
-import logger
+from . import logger
+from . import pyvdb
 
 class GDB(pyvdb.DBG):
     def __init__(self):
