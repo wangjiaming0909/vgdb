@@ -1,10 +1,11 @@
-from vdb import configs
-from vdb import logger
-from vdb import vdb_util
-from vdb import vimapi
+from . import configs
+from . import logger
+from . import vdb_util
+from . import vimapi
+import neovim
 
 class VDBWin:
-    def __init__(self, nvim) -> None:
+    def __init__(self, nvim: neovim.Nvim) -> None:
         self.nvim_ = nvim
         if logger.get_logger() is None:
             raise Exception("logger not inited")
@@ -32,7 +33,6 @@ class VDBWin:
         set_dbg_buf_local_opt('buftype', 'prompt')
         set_dbg_win_local_opt('statusline', '%<%F[%1*%M%*%n%R%H]')
         vimapi.execute(self.nvim_, "autocmd BufModifiedSet <buffer=%d> set nomodified" % self.dbg_buf_nr_)
-        vimapi.execute(self.nvim_, "autocmd InsertCharPre <buffer=%d> python3 import vdb_win" % self.dbg_buf_nr_)
 
     def create(self):
         if self.dbg_win_id_ is not None:
