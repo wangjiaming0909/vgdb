@@ -31,6 +31,7 @@ class VDBWin:
         set_dbg_buf_local_opt('syntax', 'vgdb')
         set_dbg_buf_local_opt('bh', 'hide')
         set_dbg_buf_local_opt('buftype', 'prompt')
+        vimapi.call(self.nvim_, "prompt_setprompt(%d, '')" % self.dbg_buf_nr_)
         set_dbg_win_local_opt('statusline', '%<%F[%1*%M%*%n%R%H]')
         vimapi.execute(self.nvim_, "autocmd BufModifiedSet <buffer=%d> set nomodified" % self.dbg_buf_nr_)
 
@@ -80,7 +81,8 @@ class VDBWin:
 
     def output(self, msg: bytes):
         if self.dbg_buf_nr_ is not None:
-            vimapi.appendbufline(self.nvim_, self.dbg_buf_nr_, str(msg))
+            self.nvim_.async_call(vimapi.appendbufline, self.nvim_, self.dbg_buf_nr_, msg)
+            #vimapi.appendbufline(self.nvim_, self.dbg_buf_nr_, str(msg))
 
 
 

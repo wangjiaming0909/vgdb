@@ -68,5 +68,11 @@ def setbuflocal(nvim, bufnr: int, opt: str, val = None):
                 bool_val = 'v:false'
             call(nvim, "nvim_set_option_value('%s', %s, {'buf': %d})" % (opt, bool_val, bufnr))
 
-def appendbufline(nvim, bufnr: int, msg: str):
-    call(nvim, "appendbufline(%d, '$', '%s'" % (bufnr, msg))
+def appendbufline(nvim: neovim.Nvim, bufnr: int, msg: bytes):
+    buf: neovim.api.Buffer = nvim.buffers.__getitem__(bufnr)
+    msg = msg.split(b'\n')
+    buf.append(msg)
+    #nvim.call('appendbufline', bufnr, '$', msg)
+
+def async_call(nvim: neovim.Nvim, func, *args, **kwargs):
+    nvim.async_call(func, *args, **kargs)

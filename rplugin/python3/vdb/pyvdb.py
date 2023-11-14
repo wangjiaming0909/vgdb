@@ -1,3 +1,5 @@
+from . import logger
+
 class CallBacks:
     def __init__(self, vdb):
         self.vdb_ = vdb
@@ -16,6 +18,9 @@ class DBG:
 
     def set_cbs(self, cbs):
         self.cbs_ = cbs
+
+    def get_cbs(self):
+        return self.cbs_
 
     def start(self):
         pass

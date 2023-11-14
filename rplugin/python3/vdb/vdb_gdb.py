@@ -26,12 +26,23 @@ class GDB(pyvdb.DBG):
                 if not self.p_.stdout.readable():
                     time.sleep(500)
                     continue
+                #logger.get_logger().debug('start to poll output of gdb')
                 actives = self.epoller_.poll(0.5)
+                #logger.get_logger().debug('poll output of gdb returned with actives: %d' % (len(actives)))
                 if len(actives) > 0:
-                    data = self.p_.stdout.read()
-                    if super().cbs_ is not None:
-                        super().cbs_.output(data)
-                    logger._logger.debug(self.p_.stdout.read())
+                    for fd, event in actives:
+                        try:
+                            if fd == self.p_.stdout.fileno():
+                                data = os.read(fd, 4096)
+                            elif fd == self.p_.stderr.fileno():
+                                data = os.read(fd, 4096)
+                            if super().get_cbs() is not None:
+                                super().get_cbs().output(data)
+                                logger.get_logger().debug('handle output' + str(data))
+                            else:
+                                logger.get_logger().debug('super cbs is none')
+                        except Exception as e:
+                            logger.get_logger().error('read from gdb output err: %s' % str(e))
                     actives = []
         self.output_handler_running_ = False
 
