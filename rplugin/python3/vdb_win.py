@@ -31,6 +31,7 @@ class VDBWin:
         set_dbg_buf_local_opt('buftype', 'prompt')
         set_dbg_win_local_opt('statusline', '%<%F[%1*%M%*%n%R%H]')
         vimapi.execute("autocmd BufModifiedSet <buffer=%d> set nomodified" % self.dbg_buf_nr_)
+        vimapi.execute("autocmd InsertCharPre <buffer=%d> python3 import vdb_win" % self.dbg_buf_nr_)
 
     def create(self):
         import vimapi
@@ -47,7 +48,7 @@ class VDBWin:
         self.setup_dbg_win()
         vimapi.call("cursor('$', 999)")
         # get back to the original win
-        vimapi.call("win_gotoid(%d)" % self.original_win_id_)
+        vimapi.win_gotoid(self.original_win_id_)
 
     def show(self):
         import vimapi

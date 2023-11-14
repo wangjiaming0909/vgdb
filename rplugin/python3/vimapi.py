@@ -1,4 +1,5 @@
 import vim
+import neovim
 
 def win_getid():
     return int(vim.eval('win_getid()'))
