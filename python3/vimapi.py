@@ -67,3 +67,6 @@ def setbuflocal(bufnr: int, opt: str, val = None):
             else:
                 bool_val = 'v:false'
             call("nvim_set_option_value('%s', %s, {'buf': %d})" % (opt, bool_val, bufnr))
+
+def appendbufline(bufnr: int, msg: str):
+    call("appendbufline(%d, '$', '%s'" % (bufnr, msg))

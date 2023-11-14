@@ -79,6 +79,13 @@ class VDBWin:
             self.win_width_ = vimapi.winwidth(0)
             vimapi.execute('hide')
 
+    def output(self, msg: bytes):
+        import vimapi
+        if self.dbg_buf_nr_ is not None:
+            vimapi.appendbufline(self.dbg_buf_nr_, str(msg))
+
+
+
 _vdb_win = None
 
 def get_vdb_win() -> VDBWin:

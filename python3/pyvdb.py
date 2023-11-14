@@ -1,10 +1,11 @@
 import configs
+import vimapi
 import vdb_win
 import logger
 
 class DBG:
     def __init__(self):
-        self.cbs_ = None
+        self.cbs_: CallBacks = None
 
     def set_cbs(self, cbs):
         self.cbs_ = cbs
@@ -19,8 +20,6 @@ dbgs = {}
 
 def register_dbg(name: str, dbg: DBG):
     global dbgs
-    if name in dbgs:
-        raise Exception('already registered')
     dbgs[name] = dbg
 
 class VDBEventHandler:
@@ -30,15 +29,21 @@ class VDBEventHandler:
 class VDB:
     def __init__(self):
         self.dbg_win_ = vdb_win.VDBWin()
-        self.dbg_name_ = configs.get_config('dbg')
+        self.dbg_name_ = None
+        try:
+            self.dbg_name_ = configs.get_config('dbg')
+        except Exception as e:
+            logger.get_logger().error('failed to get dbg from config: %s, e: %s' % (configs.configs, str(e)))
+            print('get dbg from config failed')
+            raise
         self.dbg_: DBG = dbgs[self.dbg_name_]
         self.cbs_ = CallBacks(self)
         self.dbg_.set_cbs(self.cbs_)
 
     def start(self):
-        self.dbg_.start()
         self.dbg_win_.create()
         self.dbg_win_.show()
+        self.dbg_.start()
 
     def stop(self):
         pass
@@ -49,11 +54,18 @@ class VDB:
 class CallBacks:
     def __init__(self, vdb: VDB):
         self.vdb_ = vdb
+
     def on_attached(self):
         pass
 
+    def output(self, msg: bytes):
+        self.vdb_.dbg_win_.output(msg)
+
 def Test():
-    vdb_win.Test_dbg_win()
+    import vdb_gdb
+    vdb = VDB()
+    vdb.start()
+    #vdb_win.Test_dbg_win()
 
 if __name__ == '__main__':
     import os

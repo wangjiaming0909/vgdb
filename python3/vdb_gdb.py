@@ -28,6 +28,9 @@ class GDB(pyvdb.DBG):
                     continue
                 actives = self.epoller_.poll(0.5)
                 if len(actives) > 0:
+                    data = self.p_.stdout.read()
+                    if super().cbs_ is not None:
+                        super().cbs_.output(data)
                     logger._logger.debug(self.p_.stdout.read())
                     actives = []
         self.output_handler_running_ = False
@@ -73,6 +76,7 @@ class GDB(pyvdb.DBG):
         if self.p_ is not None and self.p_.stdin is not None:
             self.p_.stdin.write(b'')
 
+pyvdb.register_dbg('gdb', GDB())
 
 
 if __name__ == '__main__':
