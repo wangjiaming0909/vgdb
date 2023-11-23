@@ -19,7 +19,7 @@ endfunction
 
 function GDBWin_Create() abort
   if s:gdb_buf_nr == -1
-    silent! execute '!echo "--------Welcome TO VGDB--------" > ' . s:gdb_console_file
+    silent! execute '!echo "------------Welcome TO VGDB-------------" > ' . s:gdb_console_file
   endif
   silent! execute 'vertical topleft ' . g:gdb_win_width . ' split ' . s:gdb_console_file
   let s:gdb_win_id = win_getid()
@@ -108,12 +108,13 @@ function s:init_gdb_win() abort
   "inoremap <expr> <buffer> <silent> <S-TAB> "\<C-p>"
   inoremap <buffer> <silent> <c-c> <ESC>:call VGDB_Interrupt()<cr>A
   nnoremap <buffer> <silent> <c-c> :call VGDB_Interrupt()<cr>
+  autocmd BufModifiedSet <buffer> set nomodified
 
   hi DbgBreakPoint    guibg=darkblue  ctermfg=none term=reverse ctermbg=none
   hi DbgBreakPointText guibg=none  ctermfg=red term=reverse ctermbg=none
   hi DbgDisabledBreak guibg=lightblue guifg=none ctermfg=none ctermbg=202
   hi DbgPC            guibg=Orange    guifg=none gui=bold ctermbg=17 ctermfg=none
-  hi DbgPCText        guibg=Orange    guifg=none gui=bold ctermbg=17 ctermfg=Yellow
+  hi DbgPCText        guibg=Orange    guifg=none gui=bold ctermbg=none ctermfg=Yellow
   sign define DebugBP  numhl=DbgBreakPoint  text=● texthl=DbgBreakPointText
   sign define DebugDBP numhl=DbgDisabledBreak linehl=DbgDisabledBreak text=b> texthl=DbgDisabledBreak
   sign define DebugPC  linehl=DbgPC            text=➤ texthl=DbgPCText
@@ -228,7 +229,6 @@ endfunction
 function! GDBWin_Show() abort
   if s:gdb_buf_nr == -1 || len(win_findbuf(s:gdb_buf_nr)) == 0
     call GDBWin_Create()
-    call s:restore_original_maps()
   else
     if len(win_findbuf(s:gdb_buf_nr)) == 0
       silent! execute 'vertical topleft ' . g:gdb_win_width . ' split' . s:gdb_console_file
@@ -241,18 +241,6 @@ function! GDBWin_Show() abort
       call GDBWin_Hide()
     endif
   endif
-endfunction
-
-function! s:unmap_original_maps() abort
-  for key in keys(s:original_win_unmap)
-    execute s:original_win_unmap[key]
-  endfor
-endfunction
-
-function! s:restore_original_maps() abort
-  for key in keys(s:original_win_map)
-    execute s:original_win_map[key]
-  endfor
 endfunction
 
 " we are in gdb win now
@@ -268,7 +256,6 @@ function! GDBWin_Hide() abort
   call s:go_to_gdb_win()
   call s:record_gdb_win_width()
   hide
-  call s:unmap_original_maps()
   let s:gdb_win_id = -1
 endfunction
 
@@ -702,7 +689,7 @@ function s:GDBMI.handle_stream_recs(recs) abort
           call s:unplace_pc_sign()
         endif
       endfor
-      call self.output_to_win(output['value'])
+      "call self.output_to_win(output['value'])
       " do nothing, eat the output
     else
       "should not be here
@@ -827,8 +814,8 @@ function s:GDBMI.handle_parse_res(recs) abort
   " then check async rec
   call self.handle_async_recs(recs)
   call self.handle_stream_recs(recs)
-  call self.handle_other_recs(recs)
   call self.handle_res_recs(recs)
+  call self.handle_other_recs(recs)
   "let s:output_to_popup = 0
 endfunction
 
@@ -930,7 +917,7 @@ function! s:setup_original_win() abort
   nnoremap <leader>p :call VGDB_Preview()<cr>
   nnoremap <F10> :silent! call <SID>GDBMI_Execute('n', 1)<cr>
   nnoremap <F11> :silent! call <SID>GDBMI_Execute('s', 1)<cr>
-  nunmap <F9>
+  "nunmap <F9>
   nnoremap <F9> :silent! call <SID>GDBMI_Execute('fin', 1)<cr>
   nnoremap <F8> :silent! call <SID>GDBMI_Execute('f', 1)<cr>
   nnoremap <F6> :silent! call <SID>GDBMI_Execute('c', 1)<cr>
@@ -944,15 +931,9 @@ function! s:setup_original_win() abort
 
   nnoremap <C-B> :silent! call <SID>GDBMI_Toggle_Break()<cr>
   nnoremap L :silent! call <sid>GDBMI_Execute('info locals', 1)<cr>
-  nunmap t
   nnoremap t :silent! call <sid>gdb_win_key('t')<cr>
 
-  let s:original_win_unmap = {
-        \}
-  let s:original_win_map = {
-        \}
   set mouse=a
-  "set signcolumn=yes
 endfunction
 
 let s:original_win_id = 0
@@ -974,8 +955,9 @@ function! VGDB_Interrupt() abort
   if s:GDBMI.job_id < 0
         \|| s:GDBMI.program_state == s:PROGRAM_STATE_STOPPED
         \|| s:GDBMI.program_state ==  s:PROGRAM_STATE_BK_HIT
-    call s:gdb_win_append('Quit')
+    "call s:gdb_win_append('Quit')
     call appendbufline(s:gdb_buf_nr, "$", g:vgdb_prompt)
+    call cursor('$', 999)
     "call s:setup_prompt()
     return
   endif
