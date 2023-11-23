@@ -29,6 +29,15 @@ class VDB:
         self.dbg_win_.show()
         self.dbg_.start()
 
+    @neovim.function("VDBBufEnterCB", sync=True)
+    def vdb_buf_enter_cb(self, text):
+        logger.get_logger().debug('VDBBufEnterCB with args: %s', str(text))
+
+    @neovim.function('VDBBufTabCB', sync=True)
+    def vdb_buf_tab_cb(self, text):
+        logger.get_logger().debug('VDBBufTabCB with args: %s', str(text))
+        pass
+
     def stop(self):
         pass
 

@@ -31,9 +31,14 @@ class VDBWin:
         set_dbg_buf_local_opt('syntax', 'vgdb')
         set_dbg_buf_local_opt('bh', 'hide')
         set_dbg_buf_local_opt('buftype', 'prompt')
-        vimapi.call(self.nvim_, "prompt_setprompt(%d, '')" % self.dbg_buf_nr_)
+        vimapi.call(self.nvim_, "prompt_setprompt(%d, '(gdb) ')" % self.dbg_buf_nr_)
         set_dbg_win_local_opt('statusline', '%<%F[%1*%M%*%n%R%H]')
         vimapi.execute(self.nvim_, "autocmd BufModifiedSet <buffer=%d> set nomodified" % self.dbg_buf_nr_)
+        #vimapi.execute(self.nvim_, "autocmd InsertCharPre <buffer=%d> exec \"VDBBufCharCB\" v:char" % self.dbg_buf_nr_)
+        vimapi.execute(self.nvim_, "call prompt_setcallback(%d, VDBBufEnterCB)" % self.dbg_buf_nr_)
+
+    def vdb_buf_char_pre_cb(self):
+        pass
 
     def create(self):
         if self.dbg_win_id_ is not None:

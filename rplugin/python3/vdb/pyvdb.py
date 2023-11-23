@@ -19,8 +19,9 @@ class DBG:
     def set_cbs(self, cbs):
         self.cbs_ = cbs
 
-    def get_cbs(self):
-        return self.cbs_
+    def get_cbs(self) -> CallBacks:
+        if self.cbs_ is not None:
+            return self.cbs_
 
     def start(self):
         pass

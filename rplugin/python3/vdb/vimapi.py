@@ -75,4 +75,7 @@ def appendbufline(nvim: neovim.Nvim, bufnr: int, msg: bytes):
     #nvim.call('appendbufline', bufnr, '$', msg)
 
 def async_call(nvim: neovim.Nvim, func, *args, **kwargs):
-    nvim.async_call(func, *args, **kargs)
+    nvim.async_call(func, *args, **kwargs)
+
+def create_autocmd(nvim: neovim.Nvim, event: str, func):
+    pass
