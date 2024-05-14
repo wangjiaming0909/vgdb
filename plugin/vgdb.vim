@@ -6,6 +6,7 @@ let s:gdb_console_file = '/tmp/gdb_console'
 let g:gdb_mi_output = ''
 let s:gdb_job = -1
 let g:gdb_bin = 'gdb'
+"let g:gdb_bin = 'lldb-17'
 let g:debug = 0
 let s:gdb_buf_nr = -1
 let s:popup_res = []
@@ -30,8 +31,13 @@ function GDBWin_Create() abort
   call cursor('$', 999)
 endfunction
 
+function s:print_on_gdb_console(pos, content) abort
+  call appendbufline(s:gdb_buf_nr, a:pos, a:content)
+  call setbufvar(s:gdb_buf_nr, '&modified', 0)
+endfunction
+
 function s:setup_prompt() abort
-  call appendbufline(s:gdb_buf_nr, "$", g:vgdb_prompt)
+  call s:print_on_gdb_console("$", g:vgdb_prompt)
   call cursor('$', 999)
 endfunction
 
@@ -108,7 +114,9 @@ function s:init_gdb_win() abort
   "inoremap <expr> <buffer> <silent> <S-TAB> "\<C-p>"
   inoremap <buffer> <silent> <c-c> <ESC>:call VGDB_Interrupt()<cr>A
   nnoremap <buffer> <silent> <c-c> :call VGDB_Interrupt()<cr>
-  autocmd BufModifiedSet <buffer> set nomodified
+  autocmd BufModifiedSet <buffer> setl nomodified
+  autocmd BufUnload <buffer> silent! execute 'write ' . s:gdb_console_file
+  setlocal nocursorcolumn
 
   hi DbgBreakPoint    guibg=darkblue  ctermfg=none term=reverse ctermbg=none
   hi DbgBreakPointText guibg=none  ctermfg=red term=reverse ctermbg=none
@@ -146,7 +154,7 @@ function! s:gdb_win_append(str) abort
   if a:str != ''
     let strs = split(a:str, "\n")
     for s in strs
-      call appendbufline(s:gdb_buf_nr, '$', s)
+      call s:print_on_gdb_console("$", s)
     endfor
   endif
   call win_execute(s:gdb_win_id, "call cursor('$', 999)")
@@ -956,8 +964,8 @@ function! VGDB_Interrupt() abort
         \|| s:GDBMI.program_state == s:PROGRAM_STATE_STOPPED
         \|| s:GDBMI.program_state ==  s:PROGRAM_STATE_BK_HIT
     "call s:gdb_win_append('Quit')
-    call appendbufline(s:gdb_buf_nr, "$", g:vgdb_prompt)
-    call cursor('$', 999)
+    call s:print_on_gdb_console("$", g:vgdb_prompt)
+    call win_execute(s:gdb_win_id, "call cursor('$', 999)")
     "call s:setup_prompt()
     return
   endif
