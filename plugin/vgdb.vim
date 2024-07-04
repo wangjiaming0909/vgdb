@@ -118,11 +118,11 @@ function s:init_gdb_win() abort
   autocmd BufUnload <buffer> silent! execute 'write ' . s:gdb_console_file
   setlocal nocursorcolumn
 
-  hi DbgBreakPoint    guibg=darkblue  ctermfg=none term=reverse ctermbg=none
+  hi DbgBreakPoint     ctermfg=none term=reverse ctermbg=none
   hi DbgBreakPointText guibg=none  ctermfg=red term=reverse ctermbg=none
   hi DbgDisabledBreak guibg=lightblue guifg=none ctermfg=none ctermbg=202
-  hi DbgPC            guibg=Orange    guifg=none gui=bold ctermbg=17 ctermfg=none
-  hi DbgPCText        guibg=Orange    guifg=none gui=bold ctermbg=none ctermfg=Yellow
+  hi DbgPC            guibg=#6f6f6f    guifg=none gui=bold ctermbg=17 ctermfg=none
+  hi DbgPCText        guibg=none    guifg=#ffff00 gui=bold ctermbg=none ctermfg=Yellow
   sign define DebugBP  numhl=DbgBreakPoint  text=● texthl=DbgBreakPointText
   sign define DebugDBP numhl=DbgDisabledBreak linehl=DbgDisabledBreak text=b> texthl=DbgDisabledBreak
   sign define DebugPC  linehl=DbgPC            text=➤ texthl=DbgPCText
