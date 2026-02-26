@@ -1,33 +1,33 @@
-import neovim
+import pynvim
 
-def win_getid(nvim: neovim.Nvim):
+def win_getid(nvim: pynvim.Nvim):
     return int(eval(nvim, 'win_getid()'))
 
-def execute(nvim: neovim.Nvim, cmd: str):
+def execute(nvim: pynvim.Nvim, cmd: str):
     nvim.command("execute '%s'" % cmd)
 
-def bufnr(nvim: neovim.Nvim):
+def bufnr(nvim: pynvim.Nvim):
     return int(eval(nvim, 'bufnr()'))
 
-def call(nvim: neovim.Nvim, func: str):
+def call(nvim: pynvim.Nvim, func: str):
     nvim.command("call %s" % func)
 
-def eval(nvim: neovim.Nvim, what: str):
+def eval(nvim: pynvim.Nvim, what: str):
     return nvim.eval(what)
 
-def win_id2win(nvim: neovim.Nvim, id: int) -> int:
+def win_id2win(nvim: pynvim.Nvim, id: int) -> int:
     return int(eval(nvim, 'win_id2win(%d)' % id))
 
-def bufadd(nvim: neovim.Nvim, name: str) ->int:
+def bufadd(nvim: pynvim.Nvim, name: str) ->int:
     return int(eval(nvim, "bufadd('%s')" % name))
 
-def win_execute(nvim: neovim.Nvim, win_id: int, cmd: str):
+def win_execute(nvim: pynvim.Nvim, win_id: int, cmd: str):
     call(nvim, "win_execute(%d, '%s')" % (win_id, cmd))
 
-def bufexists(nvim: neovim.Nvim, buf) -> bool:
+def bufexists(nvim: pynvim.Nvim, buf) -> bool:
     return bool(eval(nvim, "bufexists(" + str(buf) + ")"))
 
-def win_gotoid(nvim: neovim.Nvim, id):
+def win_gotoid(nvim: pynvim.Nvim, id):
     call(nvim, "win_gotoid(" + str(id) +  ")")
 
 def winwidth(nvim, nr):
@@ -68,14 +68,14 @@ def setbuflocal(nvim, bufnr: int, opt: str, val = None):
                 bool_val = 'v:false'
             call(nvim, "nvim_set_option_value('%s', %s, {'buf': %d})" % (opt, bool_val, bufnr))
 
-def appendbufline(nvim: neovim.Nvim, bufnr: int, msg: bytes):
-    buf: neovim.api.Buffer = nvim.buffers.__getitem__(bufnr)
+def appendbufline(nvim: pynvim.Nvim, bufnr: int, msg: bytes):
+    buf: pynvim.api.Buffer = nvim.buffers.__getitem__(bufnr)
     msg = msg.split(b'\n')
     buf.append(msg)
     #nvim.call('appendbufline', bufnr, '$', msg)
 
-def async_call(nvim: neovim.Nvim, func, *args, **kwargs):
+def async_call(nvim: pynvim.Nvim, func, *args, **kwargs):
     nvim.async_call(func, *args, **kwargs)
 
-def create_autocmd(nvim: neovim.Nvim, event: str, func):
+def create_autocmd(nvim: pynvim.Nvim, event: str, func):
     pass

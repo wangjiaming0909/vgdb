@@ -1,15 +1,14 @@
-import neovim
+import pynvim
 from . import pyvdb
 from . import vdb_win
 from . import configs
 from . import logger
 from . import vdb_gdb
 
-@neovim.plugin
+@pynvim.plugin
 class VDB:
-    def __init__(self, nvim: neovim.Nvim):
+    def __init__(self, nvim: pynvim.Nvim):
         self.nvim_ = nvim
-        self.dbg_win_ = vdb_win.VDBWin(nvim)
         self.dbg_name_ = None
         try:
             self.dbg_name_ = configs.get_config('dbg')
@@ -22,18 +21,20 @@ class VDB:
         self.dbg_: pyvdb.DBG = pyvdb.dbgs[self.dbg_name_]
         self.cbs_ = pyvdb.CallBacks(self)
         self.dbg_.set_cbs(self.cbs_)
+        self.dbg_.set_nvim(nvim)
+        self.dbg_win_ = vdb_win.VDBWin(nvim, self.dbg_)
 
-    @neovim.command("VDBStart")
+    @pynvim.command("VDBStart")
     def start(self):
+        self.dbg_.start()
         self.dbg_win_.create()
         self.dbg_win_.show()
-        self.dbg_.start()
 
-    @neovim.function("VDBBufEnterCB", sync=True)
+    @pynvim.function("VDBBufEnterCB", sync=True)
     def vdb_buf_enter_cb(self, text):
         logger.get_logger().debug('VDBBufEnterCB with args: %s', str(text))
 
-    @neovim.function('VDBBufTabCB', sync=True)
+    @pynvim.function('VDBBufTabCB', sync=True)
     def vdb_buf_tab_cb(self, text):
         logger.get_logger().debug('VDBBufTabCB with args: %s', str(text))
         pass

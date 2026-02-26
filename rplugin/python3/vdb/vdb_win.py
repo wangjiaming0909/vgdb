@@ -2,11 +2,13 @@ from . import configs
 from . import logger
 from . import vdb_util
 from . import vimapi
-import neovim
+from . import pyvdb
+import pynvim
 
 class VDBWin:
-    def __init__(self, nvim: neovim.Nvim) -> None:
+    def __init__(self, nvim: pynvim.Nvim, dbg: pyvdb.DBG) -> None:
         self.nvim_ = nvim
+        self.dbg_ = dbg
         if logger.get_logger() is None:
             raise Exception("logger not inited")
         self.buf_file_ = '/tmp/.vdb_console'
@@ -51,8 +53,12 @@ class VDBWin:
         self.dbg_win_id_ = vimapi.win_getid(self.nvim_)
         logger.get_logger().debug('dbg win id: %d' % self.dbg_win_id_)
         self.dbg_buf_nr_ = vimapi.bufnr(self.nvim_)
-        self.setup_dbg_win()
-        vimapi.call(self.nvim_, "cursor('$', 999)")
+        self.channel_id_ = vimapi.eval(self.nvim_, "jobstart(['%s'], {'term':v:true})" % self.dbg_.get_start_cmd())
+        self.dbg_.set_job_id(self.channel_id_)
+        vimapi.execute(self.nvim_, 'tnoremap <Esc> <C-\><C-n>')
+        vimapi.execute(self.nvim_, 'set wrap')
+        #self.setup_dbg_win()
+        #vimapi.call(self.nvim_, "cursor('$', 999)")
         # get back to the original win
         vimapi.win_gotoid(self.nvim_, self.original_win_id_)
 

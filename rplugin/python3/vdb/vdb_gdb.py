@@ -1,4 +1,5 @@
 import select, os, threading, time, subprocess
+from . import vimapi
 from . import logger
 from . import pyvdb
 
@@ -55,20 +56,28 @@ class GDB(pyvdb.DBG):
                 logger._logger.debug(os.read(self.pty_master_fd_, 4096))
                 actives = []
 
+    def get_start_cmd(self) -> str:
+        return 'gdb'
+
+    def _do_set_job_id(self):
+        vimapi.call(self.nvim_, 'chansend(%d, "new-ui mi %s\n")' % (self.job_, self.slave_pty_name_))
+
     def start(self):
         self.p_ = subprocess.Popen(self.args_, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if self.p_ is None or self.p_.stdout is None or self.p_.stderr is None:
             logger._logger.error('failed to start gdb with cmd: %s' % self.args_)
             raise Exception('start gdb failed, stdout or stderr is None')
+        #self.job_ = vimapi.eval(self.nvim_, "jobstart(['gdb'], {'term':v:true})")
         self.epoller_.register(self.p_.stdout.fileno(), select.POLLIN)
         self.epoller_.register(self.p_.stderr.fileno(), select.POLLIN)
         self.pty_master_fd_, self.pty_slave_fd_ = os.openpty()
         self.mi_epoller_.register(self.pty_master_fd_, select.POLLIN)
         self.slave_pty_name_ = os.ttyname(self.pty_slave_fd_)
-        self.output_handler_.start()
+        #self.output_handler_.start()
         self.mi_output_handler_.start()
         if self.output_handler_running_:
-            self.execute('new-ui mi %s' % self.slave_pty_name_)
+            pass
+            #self.execute('new-ui mi %s' % self.slave_pty_name_)
 
     def execute(self, cmd: str):
         if self.p_ is None or self.p_.stdin is None:

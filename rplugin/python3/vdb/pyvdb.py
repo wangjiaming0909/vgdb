@@ -15,13 +15,28 @@ dbgs = {}
 class DBG:
     def __init__(self):
         self.cbs_ = None
+        self.job_ = -1
 
     def set_cbs(self, cbs):
         self.cbs_ = cbs
 
-    def get_cbs(self) -> CallBacks:
+    def set_nvim(self, nvim):
+        self.nvim_ = nvim
+
+    def get_cbs(self):
         if self.cbs_ is not None:
             return self.cbs_
+        return None
+
+    def get_start_cmd(self) -> str:
+        return ''
+
+    def set_job_id(self, id: int):
+        self.job_ = id
+        self._do_set_job_id()
+
+    def _do_set_job_id(self):
+        pass
 
     def start(self):
         pass
