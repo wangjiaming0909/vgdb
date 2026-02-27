@@ -26,7 +26,7 @@ class DBG:
             return self.cbs_
         return None
 
-    def get_start_command(self) -> list[str]:
+    def get_start_command(self):
         return self.start_command_
     
     def set_nvim(self, nvim):

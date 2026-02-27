@@ -21,6 +21,7 @@ class VDB(object):
         self.cbs_ = CallBacks(self)
         self.dbg_.set_cbs(self.cbs_)
         self.dbg_win_ = VDBWin(nvim, self.dbg_)
+        self.dbg_.set_nvim(nvim)
 
     @pynvim.command('VDBStart')
     def start(self):

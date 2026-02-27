@@ -33,7 +33,7 @@ class GDB(DBG):
         self.slave_pty_name_ = os.ttyname(self.pty_slave_fd_)
 
         #self.execute('new-ui mi %s' % self.slave_pty_name_)
-        self.execute("new-ui mi %s" % (self.channel_id_, self.slave_pty_name_))
+        self.execute("new-ui mi %s" % self.slave_pty_name_)
         self.mi_output_handler_.start()
 
     def execute(self, cmd: str):

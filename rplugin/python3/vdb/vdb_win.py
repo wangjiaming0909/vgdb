@@ -3,7 +3,7 @@ from .logger import get_logger
 from .vdb_util import assert_fail, vdb_assert
 from . import vimapi
 import pynvim
-from _pyvdb import DBG
+from ._pyvdb import DBG
 
 class VDBWin:
     def __init__(self, nvim: pynvim.Nvim, dbg: DBG) -> None:
@@ -56,7 +56,7 @@ class VDBWin:
         self.dbg_win_id_ = vimapi.win_getid(self.nvim_)
         get_logger().debug('dbg win id: %d' % self.dbg_win_id_)
         self.dbg_buf_nr_ = vimapi.bufnr(self.nvim_)
-        self.channel_id_ = vimapi.eval(self.nvim_, 'job_start(["%s"], {"term":v:true})' % self.dbg_.get_start_command())
+        self.channel_id_ = vimapi.eval(self.nvim_, 'jobstart(%s, {"term":v:true})' % self.dbg_.get_start_command())
         self.dbg_.set_channel_id(self.channel_id_)
         #self.setup_dbg_win()
         #vimapi.call(self.nvim_, "cursor('$', 999)")
