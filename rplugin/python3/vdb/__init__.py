@@ -1,42 +1,32 @@
-import neovim
-from . import pyvdb
-from . import vdb_win
-from . import configs
-from . import logger
-from . import vdb_gdb
+import pynvim
+from .vdb_dbg import get_dbgs,CallBacks, DBG
+from .logger import get_logger
+from .vdb_win import VDBWin
+from .configs import get_config, configs
 
-@neovim.plugin
-class VDB:
-    def __init__(self, nvim: neovim.Nvim):
+@pynvim.plugin
+class VDB(object):
+    def __init__(self, nvim):
         self.nvim_ = nvim
-        self.dbg_win_ = vdb_win.VDBWin(nvim)
         self.dbg_name_ = None
         try:
-            self.dbg_name_ = configs.get_config('dbg')
+            self.dbg_name_ = get_config('dbg')
         except Exception as e:
-            logger.get_logger().error( \
+            get_logger().error( \
                     'failed to get dbg from config: %s, e: %s' % \
-                    (configs.configs, str(e)))
+                    (configs, str(e)))
             print('get dbg from config failed')
             raise
-        self.dbg_: pyvdb.DBG = pyvdb.dbgs[self.dbg_name_]
-        self.cbs_ = pyvdb.CallBacks(self)
+        self.dbg_: DBG = get_dbgs()[self.dbg_name_]
+        self.cbs_ = CallBacks(self)
         self.dbg_.set_cbs(self.cbs_)
+        self.dbg_win_ = VDBWin(nvim, self.dbg_)
 
-    @neovim.command("VDBStart")
+    @pynvim.command('VDBStart')
     def start(self):
         self.dbg_win_.create()
-        self.dbg_win_.show()
         self.dbg_.start()
-
-    @neovim.function("VDBBufEnterCB", sync=True)
-    def vdb_buf_enter_cb(self, text):
-        logger.get_logger().debug('VDBBufEnterCB with args: %s', str(text))
-
-    @neovim.function('VDBBufTabCB', sync=True)
-    def vdb_buf_tab_cb(self, text):
-        logger.get_logger().debug('VDBBufTabCB with args: %s', str(text))
-        pass
+        self.dbg_win_.show()
 
     def stop(self):
         pass

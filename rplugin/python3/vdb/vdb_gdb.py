@@ -1,50 +1,19 @@
 import select, os, threading, time, subprocess
-from . import logger
-from . import pyvdb
+from .logger import get_logger
+from ._pyvdb import DBG,register_dbg
+from . import vimapi
+import pynvim
 
-class GDB(pyvdb.DBG):
+class GDB(DBG):
     def __init__(self):
         super().__init__()
-        self.p_ = None
-        self.args_ = ['gdb']
-        self.epoller_ = select.epoll()
+        self.start_command_ = ['gdb']
         self.mi_epoller_ = select.epoll()
-        self.output_handler_ = threading.Thread(target=GDB.handle_output, args=[self])
         self.exit_ = False
         self.pty_master_fd_ = None
         self.pty_slave_fd_ = None
         self.slave_pty_name_ = None
-        self.output_handler_running_ = False
         self.mi_output_handler_ = threading.Thread(target=GDB.handle_mi_output, args=[self])
-
-    def handle_output(self):
-        self.output_handler_running_ = True
-        if self.p_ is not None:
-            while not self.exit_:
-                if self.p_.stdout is None:
-                    break
-                if not self.p_.stdout.readable():
-                    time.sleep(500)
-                    continue
-                #logger.get_logger().debug('start to poll output of gdb')
-                actives = self.epoller_.poll(0.5)
-                #logger.get_logger().debug('poll output of gdb returned with actives: %d' % (len(actives)))
-                if len(actives) > 0:
-                    for fd, event in actives:
-                        try:
-                            if fd == self.p_.stdout.fileno():
-                                data = os.read(fd, 4096)
-                            elif fd == self.p_.stderr.fileno():
-                                data = os.read(fd, 4096)
-                            if super().get_cbs() is not None:
-                                super().get_cbs().output(data)
-                                logger.get_logger().debug('handle output' + str(data))
-                            else:
-                                logger.get_logger().debug('super cbs is none')
-                        except Exception as e:
-                            logger.get_logger().error('read from gdb output err: %s' % str(e))
-                    actives = []
-        self.output_handler_running_ = False
 
     def handle_mi_output(self):
         if self.pty_master_fd_ is None:
@@ -52,43 +21,32 @@ class GDB(pyvdb.DBG):
         while not self.exit_:
             actives = self.mi_epoller_.poll(0.5)
             if len(actives) > 0:
-                logger._logger.debug(os.read(self.pty_master_fd_, 4096))
+                get_logger().debug("mi output: %s" % os.read(self.pty_master_fd_, 4096))
                 actives = []
 
     def start(self):
-        self.p_ = subprocess.Popen(self.args_, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if self.p_ is None or self.p_.stdout is None or self.p_.stderr is None:
-            logger._logger.error('failed to start gdb with cmd: %s' % self.args_)
-            raise Exception('start gdb failed, stdout or stderr is None')
-        self.epoller_.register(self.p_.stdout.fileno(), select.POLLIN)
-        self.epoller_.register(self.p_.stderr.fileno(), select.POLLIN)
+        if self.channel_id_ == -1:
+            raise Exception("channel id not initialized")
+        get_logger().debug("start gdb with cmd: %s" % self.start_command_)
         self.pty_master_fd_, self.pty_slave_fd_ = os.openpty()
         self.mi_epoller_.register(self.pty_master_fd_, select.POLLIN)
         self.slave_pty_name_ = os.ttyname(self.pty_slave_fd_)
-        self.output_handler_.start()
+
+        #self.execute('new-ui mi %s' % self.slave_pty_name_)
+        self.execute("new-ui mi %s" % (self.channel_id_, self.slave_pty_name_))
         self.mi_output_handler_.start()
-        if self.output_handler_running_:
-            self.execute('new-ui mi %s' % self.slave_pty_name_)
 
     def execute(self, cmd: str):
-        if self.p_ is None or self.p_.stdin is None:
-            return
-        if self.p_.stdin.writable():
-            len = self.p_.stdin.write((cmd+'\n').encode('utf-8'))
-            logger._logger.debug("execute with len: %d" % len)
-            self.p_.stdin.flush()
+        vimapi.call(self.nvim_, 'chansend(%d, "%s\n")' % (self.channel_id_, cmd))
 
     def stop(self):
         self.exit_ = True
-        if self.p_ is not None:
-            self.p_.terminate()
 
     def interrupte(self):
-        if self.p_ is not None and self.p_.stdin is not None:
-            self.p_.stdin.write(b'')
+        pass
 
-pyvdb.register_dbg('gdb', GDB())
-
+def register_gdb():
+    register_dbg('gdb', GDB())
 
 if __name__ == '__main__':
     gdb = GDB()
