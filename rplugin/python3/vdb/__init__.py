@@ -28,6 +28,8 @@ class VDB(object):
         self.dbg_win_.create()
         self.dbg_.start()
         self.dbg_win_.show()
+    
+    @pynvim.function("DBGWinTextEntered")
 
     def stop(self):
         pass

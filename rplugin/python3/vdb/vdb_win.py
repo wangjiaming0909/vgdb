@@ -30,20 +30,23 @@ class VDBWin:
         def set_dbg_win_local_opt(opt: str, val):
             if self.dbg_win_id_ is not None:
                 vimapi.setwinlocal(self.nvim_, self.dbg_win_id_, opt, val)
-        #set_dbg_win_local_opt('signcolumn', 'no')
-        #set_dbg_win_local_opt('scrolloff', 1)
-        #set_dbg_win_local_opt('nu', False)
-        #set_dbg_buf_local_opt('syntax', 'vgdb')
-        #set_dbg_buf_local_opt('bh', 'hide')
-        #set_dbg_buf_local_opt('buftype', 'prompt')
-        #set_dbg_win_local_opt('statusline', '%<%F[%1*%M%*%n%R%H]')
-        #vimapi.execute(self.nvim_, "autocmd BufModifiedSet <buffer=%d> set nomodified" % self.dbg_buf_nr_)
-        #vimapi.execute(self.nvim_, "autocmd InsertCharPre <buffer=%d> exec \"VDBBufCharCB\" v:char" % self.dbg_buf_nr_)
-        #vimapi.call(self.nvim_, 'VDBBufEnterCB("internal")')
-        #vimapi.call(self.nvim_, "prompt_setcallback(%d, 'VDBBufEnterCB')" % self.dbg_buf_nr_)
+        set_dbg_win_local_opt('signcolumn', 'no')
+        set_dbg_win_local_opt('scrolloff', 1)
+        set_dbg_win_local_opt('nu', False)
+        set_dbg_buf_local_opt('syntax', 'vgdb')
+        set_dbg_buf_local_opt('bh', 'hide')
+        set_dbg_buf_local_opt('buftype', 'prompt')
+        set_dbg_win_local_opt('statusline', '%<%F[%1*%M%*%n%R%H]')
+        vimapi.execute(self.nvim_, "autocmd BufModifiedSet <buffer=%d> set nomodified" % self.dbg_buf_nr_)
+        vimapi.execute(self.nvim_, "autocmd InsertCharPre <buffer=%d> exec \"VDBBufCharCB\" v:char" % self.dbg_buf_nr_)
+        vimapi.call(self.nvim_, 'VDBBufEnterCB("internal")')
+        vimapi.call(self.nvim_, "prompt_setcallback(%d, 'VDBBufEnterCB')" % self.dbg_buf_nr_)
 
     def vdb_buf_char_pre_cb(self):
         pass
+    
+    def dbg_win_text_entered(self, text):
+        vimapi.call(self.nvim_, 'chansend(%d, ["%s", ""])' % (self.channel_id_, text))
 
     def create(self):
         if self.dbg_win_id_ is not None:
@@ -56,9 +59,9 @@ class VDBWin:
         self.dbg_win_id_ = vimapi.win_getid(self.nvim_)
         get_logger().debug('dbg win id: %d' % self.dbg_win_id_)
         self.dbg_buf_nr_ = vimapi.bufnr(self.nvim_)
-        self.channel_id_ = vimapi.eval(self.nvim_, 'jobstart(%s, {"term":v:true})' % self.dbg_.get_start_command())
+        self.channel_id_ = vimapi.eval(self.nvim_, 'jobstart(%s, #{on_stdout:})' % self.dbg_.get_start_command())
         self.dbg_.set_channel_id(self.channel_id_)
-        #self.setup_dbg_win()
+        self.setup_dbg_win()
         #vimapi.call(self.nvim_, "cursor('$', 999)")
         # get back to the original win
         vimapi.win_gotoid(self.nvim_, self.original_win_id_)
@@ -93,8 +96,6 @@ class VDBWin:
 
     def do_output(self, msg):
         line_offset: int = 0
-        if self.in_command_:
-            line_offset = -1
         vimapi.appendbufline(self.nvim_, self.dbg_buf_nr_, msg, line_offset)
 
     def output(self, msg: bytes):

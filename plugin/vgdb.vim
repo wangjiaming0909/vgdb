@@ -1161,3 +1161,38 @@ function VGDB_CursorMoved() abort
   "let s:output_to_popup = 1
   "call s:GDBMI_Execute('p ' . v, 0, 1)
 endfunction
+
+" Function handling a line of text that has been typed.
+func TextEntered(text)
+  " Send the text to a shell with Enter appended.
+  call chansend(g:shell_job, [a:text, ''])
+endfunc
+
+" Function handling output from the shell: Add it above the prompt.
+func GotOutput(channel, msg, name)
+  call append(line("$") - 1, a:msg)
+endfunc
+
+" Function handling the shell exits: close the window.
+func JobExit(job, status, event)
+  quit!
+endfunc
+
+func GGGG()
+  " Start a shell in the background.
+  let shell_job = jobstart(["/bin/sh"], #{
+        \ on_stdout: function('GotOutput'),
+        \ on_stderr: function('GotOutput'),
+        \ on_exit: function('JobExit'),
+        \ })
+
+  new
+  set buftype=prompt
+  let buf = bufnr('')
+  call prompt_setcallback(buf, function("TextEntered"))
+  call prompt_setprompt(buf, "shell command: ")
+  let g:shell_job = shell_job
+
+  " start accepting shell commands
+  startinsert
+endfunc
